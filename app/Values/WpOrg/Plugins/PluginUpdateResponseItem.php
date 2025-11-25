@@ -8,7 +8,7 @@ use App\Values\DTO;
 use Bag\Attributes\Transforms;
 use Bag\Values\Optional;
 
-readonly class PluginUpdateData extends DTO
+readonly class PluginUpdateResponseItem extends DTO
 {
     /**
      * @param Optional|list<string> $requires_plugins
