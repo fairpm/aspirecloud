@@ -22,7 +22,7 @@ readonly class ThemeUpdateCheckRequest extends DTO
 {
     /**
      * @param string $active slug of currently active theme
-     * @param array<string, array{"Version": string}> $themes
+     * @param array<string, array{Version: string, UpdateURI?: string}> $themes
      * @param array<string, array<string, TranslationMetadata>> $translations
      * @param list<string> $locale
      */

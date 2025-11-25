@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\WpOrg\Themes;
 
 use App\Http\Controllers\Controller;
 use App\Models\WpOrg\Theme;
+use App\Utils\Regex;
 use App\Values\WpOrg\Themes\ThemeUpdateCheckRequest;
 use App\Values\WpOrg\Themes\ThemeUpdateCheckResponse;
 use Illuminate\Http\JsonResponse;
@@ -19,14 +20,23 @@ class ThemeUpdatesController extends Controller
         try {
             $req = ThemeUpdateCheckRequest::from($request);
 
-            /** @noinspection PhpParamsInspection (fails to parse the full signature for Collection::partition)  */
+            $isValid = fn($item) => !isset($item['UpdateURI'])
+                || !$item['UpdateURI']
+                || Regex::match('!(?:https?://)?(?:wordpress\.org|w\.org)/themes?/!', $item['UpdateURI']);
+
+            $reqThemes = collect($req->themes)->filter($isValid);
+
+            /** @noinspection PhpParamsInspection (fails to parse the full signature for Collection::partition) */
             $themes = Theme::query()
-                ->whereIn('slug', array_keys($req->themes))
+                ->whereIn('slug', $reqThemes->keys())
                 ->get()
-                ->partition(fn(Theme $theme) => version_compare($theme->version, $req->themes[$theme->slug]['Version'], '>'));
+                ->partition(fn(Theme $theme) => version_compare(
+                    $theme->version,
+                    $reqThemes[$theme->slug]['Version'] ?? null,
+                    '>',
+                ));
 
             return $this->sendResponse(ThemeUpdateCheckResponse::fromResults($themes[0], $themes[1]));
-
         } catch (ValidationException $e) {
             // Handle validation errors and return a custom response
             $firstErrorMessage = collect($e->errors())->flatten()->first();
@@ -39,14 +49,16 @@ class ThemeUpdatesController extends Controller
      *
      * @param array<string,mixed>|ThemeUpdateCheckResponse $response
      */
-    private function sendResponse(array|ThemeUpdateCheckResponse $response, int $statusCode = 200): JsonResponse|Response
-    {
+    private function sendResponse(
+        array|ThemeUpdateCheckResponse $response,
+        int $statusCode = 200,
+    ): JsonResponse|Response {
         $version = request()->route('version');
         if ($version === '1.0') {
             if ($response instanceof ThemeUpdateCheckResponse) {
                 $response = $response->toArray();
             }
-            return response(serialize((object) $response), $statusCode);
+            return response(serialize((object)$response), $statusCode);
         }
         return response()->json($response, $statusCode);
     }
