@@ -15,7 +15,7 @@ readonly class PluginUpdateRequestItem extends DTO
 {
     public function __construct(
         public ?string $Name = null,
-        public ?string $Version = null,     // if null, either any version is an update or none is.  not sure which.
+        public ?string $Version = null,     // if null, any version is an update
         public ?string $Description = null,
         public ?string $Title = null,       // not sure how this differs from $Name...
         public ?string $PluginURI = null,
