@@ -10,9 +10,9 @@ use Illuminate\Support\Collection;
 readonly class PluginUpdateCheckResponse extends DTO
 {
     /**
-     * @param Collection<string, PluginUpdateData> $plugins
-     * @param Optional|Collection<string, PluginUpdateData> $no_update
-     * @param Collection<array-key, mixed> $translations
+     * @param Collection<string, PluginUpdateResponseItem>          $plugins
+     * @param Optional|Collection<string, PluginUpdateResponseItem> $no_update
+     * @param Collection<array-key, mixed>                          $translations
      */
     public function __construct(
         public Collection $plugins,

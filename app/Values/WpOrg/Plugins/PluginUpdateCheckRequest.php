@@ -7,8 +7,7 @@ use App\Utils\JSON;
 use App\Values\DTO;
 use Bag\Attributes\Transforms;
 use Illuminate\Http\Request;
-
-use function Safe\json_decode;
+use Illuminate\Support\Collection;
 
 /**
  * @phpstan-type TranslationMetadata array{
@@ -21,12 +20,12 @@ use function Safe\json_decode;
 readonly class PluginUpdateCheckRequest extends DTO
 {
     /**
-     * @param array<string, array{"Version": string}> $plugins
+     * @param Collection<string, PluginUpdateRequestItem> $plugins
      * @param array<string, array<string, TranslationMetadata>> $translations
      * @param list<string> $locale
      */
     public function __construct(
-        public array $plugins,
+        public Collection $plugins,
         public array $translations,
         public array $locale,
         public bool $all = false,
@@ -38,7 +37,7 @@ readonly class PluginUpdateCheckRequest extends DTO
     {
         $decode = fn($key) => JSON::tryToAssoc($request->post($key) ?? '[]') ?? [];
         return [
-            'plugins' => $decode('plugins')['plugins'],
+            'plugins' => PluginUpdateRequestItem::collect($decode('plugins')['plugins']),
             'locale' => $decode('locale'),
             'translations' => $decode('translations'),
             'all' => $request->boolean('all'),

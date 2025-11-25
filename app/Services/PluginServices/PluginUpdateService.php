@@ -6,22 +6,25 @@ namespace App\Services\PluginServices;
 use App\Models\WpOrg\Plugin;
 use App\Values\WpOrg\Plugins\PluginUpdateCheckRequest;
 use App\Values\WpOrg\Plugins\PluginUpdateCheckResponse;
-use App\Values\WpOrg\Plugins\PluginUpdateData;
+use App\Values\WpOrg\Plugins\PluginUpdateRequestItem;
+use App\Values\WpOrg\Plugins\PluginUpdateResponseItem;
 
 class PluginUpdateService
 {
     public function checkForUpdates(PluginUpdateCheckRequest $req): PluginUpdateCheckResponse
     {
-        $bySlug = collect($req->plugins)
-            ->mapWithKeys(
-                fn($pluginData, $pluginFile) => [$this->extractSlug($pluginFile) => [$pluginFile, $pluginData]],
-            );
+        $bySlug = $req->plugins
+            ->filter(fn(PluginUpdateRequestItem $item) => $item->hasValidUpdateUri())
+            ->mapWithKeys(fn($item, $path) => [$this->extractSlug($path) => [$path, $item]]);
 
-        $isUpdated = fn(Plugin $plugin) => version_compare($plugin->version, $bySlug[$plugin->slug][1]['Version'] ?? '', '>');
+        $isUpdated = function (Plugin $plugin) use ($bySlug): bool {
+            $item = $bySlug[$plugin->slug][1];
+            return version_compare($plugin->version, $item->Version ?? '', '>');
+        };
 
         $mkUpdate = function (Plugin $plugin) use ($bySlug) {
             $file = (string)$bySlug[$plugin->slug][0];
-            return [$file => PluginUpdateData::from($plugin)->with(plugin: $file)];
+            return [$file => PluginUpdateResponseItem::from($plugin)->with(plugin: $file)];
         };
 
         /** @noinspection PhpParamsInspection (broken on Collection::partition) */
@@ -34,9 +37,7 @@ class PluginUpdateService
         return PluginUpdateCheckResponse::from(plugins: $updates, no_update: $no_updates, translations: collect([]));
     }
 
-    /**
-     * Extract the plugin slug from the plugin file path
-     */
+    /** Extract the plugin slug from the plugin file path */
     private function extractSlug(string $pluginFile): string
     {
         return str_contains($pluginFile, '/')

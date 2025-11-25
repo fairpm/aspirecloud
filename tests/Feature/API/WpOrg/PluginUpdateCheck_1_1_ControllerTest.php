@@ -21,16 +21,16 @@ it('returns an empty response for empty requests', function () {
 });
 
 it('returns plugin updates from minimal input', function () {
-    Plugin::factory(['slug' => 'frobnicator', 'version' => '1.2.3'])->create();
-    Plugin::factory(['slug' => 'transmogrifier', 'version' => '0.5'])->create();
+    Plugin::factory(['slug' => 'aaa', 'version' => '1.2.3'])->create();
+    Plugin::factory(['slug' => 'bbb', 'version' => '0.5'])->create();
 
     $this
         ->withHeader('Accept', 'application/json')
         ->post('/plugins/update-check/1.1', [
             'plugins' => json_encode([
                 'plugins' => [
-                    'frobnicator/frobber.php' => ['Version' => '1.0.2'],    // out of date
-                    'transmogrifier.php' => ['Version' => '0.5'],   // up to date
+                    'aaa/plugin-a.php' => ['Version' => '1.0.2'], // out of date
+                    'bbb/plugin-b.php' => ['Version' => '0.5'],   // up to date
                 ],
             ]),
             'translations' => json_encode([]),
@@ -39,14 +39,132 @@ it('returns plugin updates from minimal input', function () {
         ->assertStatus(200)
         ->assertJson([
             'plugins' => [
-                'frobnicator/frobber.php' => [
-                    'plugin' => 'frobnicator/frobber.php',
-                    'slug' => 'frobnicator',
+                'aaa/plugin-a.php' => [
+                    'plugin' => 'aaa/plugin-a.php',
+                    'slug' => 'aaa',
                     'new_version' => '1.2.3',
                 ],
             ],
         ])
-        ->assertJsonMissingPath('plugins.transmogrifier')
+        ->assertJsonCount(1, 'plugins')
+        ->assertJsonMissingPath('plugins.bbb')
+        ->assertJsonMissingPath('plugins.no_update')
+        ->assertExactJsonStructure([
+            'plugins' => [
+                '*' => [
+                    'banners' => ['high', 'low'],
+                    'banners_rtl',
+                    'compatibility' => [
+                        'php' => ['minimum', 'recommended'],
+                        'wordpress' => ['maximum', 'minimum', 'tested'],
+                    ],
+                    'icons' => ['1x', '2x'],
+                    'id',
+                    'new_version',
+                    'package',
+                    'plugin',
+                    'requires',
+                    'requires_php',
+                    'requires_plugins',
+                    'slug',
+                    'tested',
+                    'url',
+                ],
+            ],
+            'translations',
+        ]);
+});
+
+it('returns all plugin updates', function () {
+    Plugin::factory(['slug' => 'aaa', 'version' => '1.2.3'])->create();
+    Plugin::factory(['slug' => 'bbb', 'version' => '0.3'])->create();
+
+    $this
+        ->withHeader('Accept', 'application/json')
+        ->post('/plugins/update-check/1.1', [
+            'plugins' => json_encode([
+                'plugins' => [
+                    'aaa/plugin-a.php' => ['Version' => '1.0.3'],
+                    'bbb/plugin-b.php' => ['Version' => '0.2'],
+                ],
+            ]),
+            'translations' => json_encode([]),
+            'locale' => json_encode([]),
+        ])
+        ->assertStatus(200)
+        ->assertJson([
+            'plugins' => [
+                'aaa/plugin-a.php' => [
+                    'plugin' => 'aaa/plugin-a.php',
+                    'slug' => 'aaa',
+                    'new_version' => '1.2.3',
+                ],
+            ],
+        ])
+        ->assertJson([
+            'plugins' => [
+                'bbb/plugin-b.php' => [
+                    'plugin' => 'bbb/plugin-b.php',
+                    'slug' => 'bbb',
+                    'new_version' => '0.3',
+                ],
+            ],
+        ])
+        ->assertJsonCount(2, 'plugins')
+        ->assertJsonMissingPath('plugins.no_update')
+        ->assertExactJsonStructure([
+            'plugins' => [
+                '*' => [
+                    'banners' => ['high', 'low'],
+                    'banners_rtl',
+                    'compatibility' => [
+                        'php' => ['minimum', 'recommended'],
+                        'wordpress' => ['maximum', 'minimum', 'tested'],
+                    ],
+                    'icons' => ['1x', '2x'],
+                    'id',
+                    'new_version',
+                    'package',
+                    'plugin',
+                    'requires',
+                    'requires_php',
+                    'requires_plugins',
+                    'slug',
+                    'tested',
+                    'url',
+                ],
+            ],
+            'translations',
+        ]);
+});
+
+it('filters updates with nonstandard UpdateURI', function () {
+    Plugin::factory(['slug' => 'aaa', 'version' => '1.2.3'])->create();
+    Plugin::factory(['slug' => 'bbb', 'version' => '0.3'])->create();
+
+    $this
+        ->withHeader('Accept', 'application/json')
+        ->post('/plugins/update-check/1.1', [
+            'plugins' => json_encode([
+                'plugins' => [
+                    'aaa/plugin-a.php' => ['Version' => '1.0.3', 'UpdateURI' => 'false'],
+                    'bbb/plugin-b.php' => ['Version' => '0.2'],
+                ],
+            ]),
+            'translations' => json_encode([]),
+            'locale' => json_encode([]),
+        ])
+        ->assertStatus(200)
+        ->assertJson([
+            'plugins' => [
+                'bbb/plugin-b.php' => [
+                    'plugin' => 'bbb/plugin-b.php',
+                    'slug' => 'bbb',
+                    'new_version' => '0.3',
+                ],
+            ],
+        ])
+        ->assertJsonCount(1, 'plugins')
         ->assertJsonMissingPath('plugins.no_update')
         ->assertExactJsonStructure([
             'plugins' => [
@@ -75,16 +193,16 @@ it('returns plugin updates from minimal input', function () {
 });
 
 it('uses defaults for malformed requests', function () {
-    Plugin::factory(['slug' => 'frobnicator', 'version' => '1.2.3'])->create();
-    Plugin::factory(['slug' => 'transmogrifier', 'version' => '0.5'])->create();
+    Plugin::factory(['slug' => 'aaa', 'version' => '1.2.3'])->create();
+    Plugin::factory(['slug' => 'bbb', 'version' => '0.5'])->create();
 
     $this
         ->withHeader('Accept', 'application/json')
         ->post('/plugins/update-check/1.1', [
             'plugins' => json_encode([
                 'plugins' => [
-                    'frobnicator/frobber.php' => ['Version' => '1.0.2'],    // out of date
-                    'transmogrifier.php' => ['Version' => '0.5'],   // up to date
+                    'aaa/plugin-a.php' => ['Version' => '1.0.2'],    // out of date
+                    'bbb.php' => ['Version' => '0.5'],   // up to date
                 ],
             ]),
             'translations' => '', // becomes null!
@@ -93,14 +211,14 @@ it('uses defaults for malformed requests', function () {
         ->assertStatus(200)
         ->assertJson([
             'plugins' => [
-                'frobnicator/frobber.php' => [
-                    'plugin' => 'frobnicator/frobber.php',
-                    'slug' => 'frobnicator',
+                'aaa/plugin-a.php' => [
+                    'plugin' => 'aaa/plugin-a.php',
+                    'slug' => 'aaa',
                     'new_version' => '1.2.3',
                 ],
             ],
         ])
-        ->assertJsonMissingPath('plugins.transmogrifier')
+        ->assertJsonMissingPath('plugins.bbb')
         ->assertJsonMissingPath('plugins.no_update')
         ->assertExactJsonStructure([
             'plugins' => [
@@ -129,16 +247,16 @@ it('uses defaults for malformed requests', function () {
 });
 
 it('includes no_update when all=true', function () {
-    Plugin::factory(['slug' => 'frobnicator', 'version' => '1.2.3'])->create();
-    Plugin::factory(['slug' => 'transmogrifier', 'version' => '0.5'])->create();
+    Plugin::factory(['slug' => 'aaa', 'version' => '1.2.3'])->create();
+    Plugin::factory(['slug' => 'bbb', 'version' => '0.5'])->create();
 
     $this
         ->withHeader('Accept', 'application/json')
         ->post('/plugins/update-check/1.1?all=true', [
             'plugins' => json_encode([
                 'plugins' => [
-                    'frobnicator/frobber.php' => ['Version' => '1.0.2'],    // out of date
-                    'transmogrifier.php' => ['Version' => '0.5'],   // up to date
+                    'aaa/plugin-a.php' => ['Version' => '1.0.2'],    // out of date
+                    'bbb/plugin-b.php' => ['Version' => '0.5'],   // up to date
                 ],
             ]),
             'translations' => json_encode([]),
@@ -147,17 +265,17 @@ it('includes no_update when all=true', function () {
         ->assertStatus(200)
         ->assertJson([
             'plugins' => [
-                'frobnicator/frobber.php' => [
-                    'plugin' => 'frobnicator/frobber.php',
-                    'slug' => 'frobnicator',
+                'aaa/plugin-a.php' => [
+                    'plugin' => 'aaa/plugin-a.php',
+                    'slug' => 'aaa',
                     'new_version' => '1.2.3',
                 ],
             ],
         ])
-        ->assertJsonMissingPath('plugins.transmogrifier')
+        ->assertJsonMissingPath('plugins.bbb')
         ->assertExactJsonStructure([
             'plugins' => [
-                'frobnicator/frobber.php' => [
+                'aaa/plugin-a.php' => [
                     'banners' => ['high', 'low'],
                     'banners_rtl',
                     'compatibility' => [
@@ -178,7 +296,7 @@ it('includes no_update when all=true', function () {
                 ],
             ],
             'no_update' => [
-                'transmogrifier.php' => [
+                'bbb/plugin-b.php' => [
                     'banners' => ['high', 'low'],
                     'banners_rtl',
                     'compatibility' => [

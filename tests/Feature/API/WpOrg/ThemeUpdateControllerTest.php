@@ -141,6 +141,114 @@ it('returns theme updates', function () {
         ]);
 });
 
+it('returns theme updates - nonstandard UpdateURI filtered', function () {
+    $response = $this->post('/themes/update-check/1.1', [
+        'themes' => json_encode([
+            "active" => "my-theme",
+            "themes" => [
+                "my-theme" => [
+                    "Name" => "my-theme",
+                    "Title" => "My Theme",
+                    "Version" => "9.9.9",
+                    "Author" => "Author",
+                    "Author URI" => "http://www.author.com",
+                    "UpdateURI" => "",
+                    "Template" => "my-theme",
+                    "Stylesheet" => "my-theme",
+                ],
+                "my-theme2" => [
+                    "Name" => "my-theme2",
+                    "Title" => "My Theme 2",
+                    "Version" => "0.1",
+                    "Author" => "Author",
+                    "Author URI" => "http://www.author.com",
+                    "UpdateURI" => "oops",
+                    "Template" => "my-theme",
+                    "Stylesheet" => "my-theme",
+                ],
+            ],
+        ]),
+        'translations' => "[]",
+        'locale' => "[\"en_US\"]",
+    ], [
+        'Accept' => 'application/json',
+    ]);
+
+    $response->assertStatus(200);
+    $response
+        ->assertJsonCount(0, 'themes')
+        ->assertJsonCount(1, 'no_update')
+        ->assertJson([
+            'themes' => [],
+            'no_update' => [
+                'my-theme' => [
+                    'name' => 'My Theme',
+                    'theme' => 'my-theme',
+                    'new_version' => '1.2.1',
+                    'url' => 'https://api.aspiredev.org/download/my-theme',
+                    'package' => 'https://api.aspiredev.org/download/my-theme',
+                    'requires' => null,
+                    'requires_php' => '5.6',
+                ],
+            ],
+            'translations' => [],
+        ]);
+});
+
+it('returns theme updates - nonstandard UpdateURI filtered from noupdate ', function () {
+    $response = $this->post('/themes/update-check/1.1', [
+        'themes' => json_encode([
+            "active" => "my-theme",
+            "themes" => [
+                "my-theme" => [
+                    "Name" => "my-theme",
+                    "Title" => "My Theme",
+                    "Version" => "1.2.0",
+                    "Author" => "Author",
+                    "Author URI" => "http://www.author.com",
+                    "UpdateURI" => "",
+                    "Template" => "my-theme",
+                    "Stylesheet" => "my-theme",
+                ],
+                "my-theme2" => [
+                    "Name" => "my-theme2",
+                    "Title" => "My Theme 2",
+                    "Version" => "3.0",
+                    "Author" => "Author",
+                    "Author URI" => "http://www.author.com",
+                    "UpdateURI" => "whoopsie",
+                    "Template" => "my-theme",
+                    "Stylesheet" => "my-theme",
+                ],
+            ],
+        ]),
+        'translations' => "[]",
+        'locale' => "[\"en_US\"]",
+    ], [
+        'Accept' => 'application/json',
+    ]);
+
+    $response->assertStatus(200);
+    $response
+        ->assertJsonCount(1, 'themes')
+        ->assertJsonCount(0, 'no_update')
+        ->assertJson([
+            'themes' => [
+                'my-theme' => [
+                    'name' => 'My Theme',
+                    'theme' => 'my-theme',
+                    'new_version' => '1.2.1',
+                    'url' => 'https://api.aspiredev.org/download/my-theme',
+                    'package' => 'https://api.aspiredev.org/download/my-theme',
+                    'requires' => null,
+                    'requires_php' => '5.6',
+                ],
+            ],
+            'no_update' => [],
+            'translations' => [],
+        ]);
+});
+
 it('returns theme updates - no_updates', function () {
     $response = $this->post('/themes/update-check/1.1', [
         'themes' => json_encode([
