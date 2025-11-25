@@ -17,5 +17,5 @@ buildx() {
     docker buildx build --platform $platform -f $file --target prod -t ghcr.io/$name:$tag -t ghcr.io/$name:latest $push_arg .
 }
 
-buildx docker/webapp/Dockerfile aspirepress/aspirecloud $tag
-buildx docker/laravel-worker/Dockerfile aspirepress/aspirecloud-worker $tag
+buildx docker/webapp/Dockerfile fairpm/aspirecloud $tag
+buildx docker/laravel-worker/Dockerfile fairpm/aspirecloud-worker $tag
