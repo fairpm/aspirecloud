@@ -80,7 +80,7 @@ class QueryPluginsService
         return $query
             ->where(fn($q) => $q
                 ->where('slug', $search)
-                ->orWhere('name', 'like', "$search%")
+                ->orWhere('name', 'ilike', "$search%")
                 ->orWhereRaw("slug %> ?", [$wordchars])
                 ->orWhereRaw("name %> ?", [$wordchars])
                 ->orWhereRaw("short_description %> ?", [$wordchars])
@@ -90,8 +90,8 @@ class QueryPluginsService
             CASE
                 WHEN slug = ? THEN 1000000
                 WHEN name = ? THEN 900000
-                WHEN slug LIKE ? THEN 800000
-                WHEN name LIKE ? THEN 700000
+                WHEN slug ILIKE ? THEN 800000
+                WHEN name ILIKE ? THEN 700000
                 WHEN slug %> ? THEN 600000
                 WHEN name %> ? THEN 500000
                 WHEN short_description %> ? THEN 400000
