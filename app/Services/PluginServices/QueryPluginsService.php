@@ -12,16 +12,16 @@ class QueryPluginsService
 {
     public function queryPlugins(Plugins\QueryPluginsRequest $req): Plugins\QueryPluginsResponse
     {
-        $page    = $req->page;
+        $page = $req->page;
         $perPage = $req->per_page;
-        $browse  = $req->browse ?: 'popular';
-        $search  = $req->search ?? null;
-        $author  = $req->author ?? null;
+        $browse = $req->browse ?: 'popular';
+        $search = $req->search ?? null;
+        $author = $req->author ?? null;
 
         // Operators coming from the DTO
-        $tags   = $req->tags   ?? [];
+        $tags = $req->tags ?? [];
         $tagAnd = $req->tagAnd ?? [];
-        $tagOr  = $req->tagOr  ?? [];
+        $tagOr = $req->tagOr ?? [];
         $tagNot = $req->tagNot ?? [];
 
         // merge base tags with tagOr
@@ -31,8 +31,8 @@ class QueryPluginsService
         $callbacks = collect();
 
         !empty($anyTags) && $callbacks->push(fn($q) => self::applyTagAny($q, $anyTags));
-        !empty($tagAnd)  && $callbacks->push(fn($q) => self::applyTagAll($q, $tagAnd));
-        !empty($tagNot)  && $callbacks->push(fn($q) => self::applyTagNot($q, $tagNot));
+        !empty($tagAnd) && $callbacks->push(fn($q) => self::applyTagAll($q, $tagAnd));
+        !empty($tagNot) && $callbacks->push(fn($q) => self::applyTagNot($q, $tagNot));
 
         $search && $callbacks->push(fn($q) => self::applySearchWeighted($q, $search, $req));
         $author && $callbacks->push(fn($q) => self::applyAuthor($q, $author));
@@ -56,7 +56,7 @@ class QueryPluginsService
 
         return Plugins\QueryPluginsResponse::from([
             'plugins' => $plugins,
-            'info' => ['page' => $page, 'pages' => $totalPages, 'results' => $total],
+            'info'    => ['page' => $page, 'pages' => $totalPages, 'results' => $total],
         ]);
     }
 
@@ -69,9 +69,8 @@ class QueryPluginsService
     public static function applySearchWeighted(
         Builder $query,
         string $search,
-        Plugins\QueryPluginsRequest $request
-    ): Builder
-    {
+        Plugins\QueryPluginsRequest $request,
+    ): Builder {
         $lcsearch = mb_strtolower($search);
         $slug = Regex::replace('/[^-\w]+/', '-', $lcsearch);
         $wordchars = Regex::replace('/\W+/', '', $lcsearch);
@@ -84,7 +83,7 @@ class QueryPluginsService
                 ->orWhereRaw("slug %> ?", [$wordchars])
                 ->orWhereRaw("name %> ?", [$wordchars])
                 ->orWhereRaw("short_description %> ?", [$wordchars])
-                ->orWhereFullText('description', $search)
+                ->orWhereFullText('description', $search),
             )
             ->selectRaw("plugins.*,
             CASE
@@ -97,29 +96,28 @@ class QueryPluginsService
                 WHEN short_description %> ? THEN 400000
                 WHEN to_tsvector('english', description) @@ plainto_tsquery(?) THEN 300000
                 ELSE 0
-            END + log(GREATEST($sortColumn, 1)) AS score", [
-                $search,
-                $search,
-                "$slug%",
-                "$search%",
-                $wordchars,
-                $wordchars,
-                $wordchars,
-                $search,
-            ])
+            END + log(GREATEST($sortColumn, 1)) AS score",
+                [
+                    $search,
+                    $search,
+                    "$slug%",
+                    "$search%",
+                    $wordchars,
+                    $wordchars,
+                    $wordchars,
+                    $search,
+                ])
             ->orderByDesc('score');
     }
 
     /** @param Builder<Plugin> $query */
     public static function applyAuthor(Builder $query, string $author): Builder
     {
-        return $query->where(fn(Builder $q)
-            => $q
+        return $query->where(fn(Builder $q) => $q
             ->whereRaw("author %> '$author'")
             ->orWhereHas(
                 'contributors',
-                fn(Builder $q)
-                    => $q
+                fn(Builder $q) => $q
                     ->whereRaw("user_nicename %> '$author'")
                     ->orWhereRaw("display_name %> '$author'"),
             ));
@@ -127,7 +125,7 @@ class QueryPluginsService
 
     /**
      * @param Builder<Plugin> $query
-     * @param list<string> $tags
+     * @param list<string>    $tags
      */
     public static function applyTagAny(Builder $query, array $tags): Builder
     {
@@ -136,7 +134,7 @@ class QueryPluginsService
 
     /**
      * @param Builder<Plugin> $query
-     * @param list<string> $tags
+     * @param list<string>    $tags
      */
     public static function applyTagAll(Builder $query, array $tags): Builder
     {
@@ -144,13 +142,13 @@ class QueryPluginsService
             'tags',
             fn(Builder $q) => $q->whereIn('slug', $tags),
             '>=',
-            count($tags)
+            count($tags),
         );
     }
 
     /**
      * @param Builder<Plugin> $query
-     * @param list<string> $tags
+     * @param list<string>    $tags
      */
     public static function applyTagNot(Builder $query, array $tags): Builder
     {
@@ -164,6 +162,13 @@ class QueryPluginsService
      */
     public static function applyBrowse(Builder $query, string $browse): Builder
     {
+        if ($browse === 'featured') {
+            $query->where(fn($q) => $q
+                ->where(fn($q) => $q->where('rating', '>=', 4)->where('num_ratings', '>', 100))
+                ->orWhere('ac_origin', '!=', 'wp_org')
+            );
+        }
+
         return $query->reorder(self::browseToSortColumn($browse), 'desc');
     }
 
@@ -171,8 +176,8 @@ class QueryPluginsService
     {
         return match ($browse) {
             'new' => 'added',
-            'updated' => 'last_updated',
-            'top-rated', 'featured' => 'rating',
+            'top-rated' => 'rating',
+            'updated', 'featured' => 'last_updated',
             default => 'active_installs',
         };
     }
