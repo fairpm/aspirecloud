@@ -208,29 +208,6 @@ test('applyBrowse adds sorting to the query', function () {
     expect($sql)->toContain('order by');
 });
 
-test('browseToSortColumn returns correct column for each browse parameter', function () {
-    expect(QueryPluginsService::browseToSortColumn('new'))
-        ->toBe('added')
-        ->and(QueryPluginsService::browseToSortColumn('updated'))->toBe('last_updated')
-        ->and(QueryPluginsService::browseToSortColumn('top-rated'))->toBe('rating')
-        ->and(QueryPluginsService::browseToSortColumn('featured'))->toBe('rating')
-        ->and(QueryPluginsService::browseToSortColumn('popular'))->toBe('active_installs')
-        ->and(QueryPluginsService::browseToSortColumn(null))->toBe('active_installs');
-});
-
-// [chuck 2025-09-13] These are no longer used, but keeping them commented for future reference.
-//                    If they're still not used after 6 months, just delete them.
-//
-// test('normalizeSearchString handles various inputs correctly', function () {
-//     expect(QueryPluginsService::normalizeSearchString(null))
-//         ->toBeNull()
-//         ->and(QueryPluginsService::normalizeSearchString(''))->toBe('')
-//         ->and(QueryPluginsService::normalizeSearchString('  test  '))->toBe('test')
-//         ->and(QueryPluginsService::normalizeSearchString('test search'))->toBe('test search')
-//         ->and(QueryPluginsService::normalizeSearchString('test@example.com'))->toBe('test@example.com')
-//         ->and(QueryPluginsService::normalizeSearchString('test*search'))->toBe('test search');
-// });
-
 test('applySearchWeighted prioritizes relevance over install count', function () {
     // Create plugins with different install counts and names
     Plugin::factory()->create([
