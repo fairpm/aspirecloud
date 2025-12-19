@@ -164,7 +164,7 @@ class QueryPluginsService
     {
         if ($browse === 'featured') {
             $query->where(fn($q) => $q
-                ->where(fn($q) => $q->where('rating', '>=', 4)->where('num_ratings', '>', 100))
+                ->where(fn($q) => $q->where('rating', '>=', 80)->where('num_ratings', '>', 100))
                 ->orWhere('ac_origin', '!=', 'wp_org')
             );
         }
