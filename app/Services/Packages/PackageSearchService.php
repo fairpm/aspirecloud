@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class PackageSearchService
 {
+    /** @return LengthAwarePaginator<int, Package> */
     public function search(string $type, ?string $query, int $page = 1, int $perPage = 24): LengthAwarePaginator
     {
         if ($query === null || $query === '') {
@@ -28,6 +29,7 @@ class PackageSearchService
         return $this->trigramSearch($type, $query, $page, $perPage);
     }
 
+    /** @return LengthAwarePaginator<int, Package> */
     private function fullTextSearch(string $type, string $query, int $page, int $perPage): LengthAwarePaginator
     {
         $tsQuery = "plainto_tsquery('english', ?)";
@@ -47,6 +49,7 @@ class PackageSearchService
             ->paginate(perPage: $perPage, page: $page);
     }
 
+    /** @return LengthAwarePaginator<int, Package> */
     private function trigramSearch(string $type, string $query, int $page, int $perPage): LengthAwarePaginator
     {
         return Package::where('type', $type)
