@@ -5,9 +5,8 @@ namespace App\Http\Controllers\API\FAIR\Packages;
 
 use App\Http\Controllers\Controller;
 use App\Services\Packages\PackageSearchService;
-use App\Values\Packages\FairMetadata;
 use App\Values\Packages\PackageSearchRequest;
-use Illuminate\Http\JsonResponse;
+use App\Values\Packages\PackageSearchResponse;
 
 class PackageSearchController extends Controller
 {
@@ -15,22 +14,11 @@ class PackageSearchController extends Controller
         private PackageSearchService $searchService,
     ) {}
 
-    public function __invoke(PackageSearchRequest $request): JsonResponse
+    /** @return array<string, mixed> */
+    public function __invoke(PackageSearchRequest $request): array
     {
         $results = $this->searchService->search($request);
 
-        $packages = collect($results->items())->map(
-            fn ($package) => FairMetadata::from($package)->toArray()
-        );
-
-        return response()->json([
-            'info' => [
-                'page' => $results->currentPage(),
-                'per_page' => $results->perPage(),
-                'total' => $results->total(),
-                'pages' => $results->lastPage(),
-            ],
-            'packages' => $packages,
-        ]);
+        return PackageSearchResponse::from($results)->toArray();
     }
 }
