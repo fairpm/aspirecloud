@@ -9,11 +9,23 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Searches packages using Postgres full-text search with trigram fallback.
+ *
+ * Search strategy with a query: try tsvector full-text search (including tag matching)
+ * first, fall back to trigram similarity on name/slug if no FTS results.
+ * Without a query: return all packages of the given type, newest first.
+ */
 class PackageSearchService
 {
+    /** @var list<string> Relations to eager load to avoid N+1 queries when building FAIR metadata. */
     private const EAGER_LOAD = ['releases', 'authors', 'tags', 'metas'];
 
-    /** @return LengthAwarePaginator<int, Package> */
+    /**
+     * Search packages by type with optional query and version requirements.
+     *
+     * @return LengthAwarePaginator<int, Package>
+     */
     public function search(PackageSearchRequest $request): LengthAwarePaginator
     {
         if ($request->q === null || $request->q === '') {
@@ -37,7 +49,13 @@ class PackageSearchService
         return $this->trigramSearch($request);
     }
 
-    /** @return LengthAwarePaginator<int, Package> */
+    /**
+     * Search using Postgres tsvector full-text search, ranked by ts_rank.
+     *
+     * Also matches packages whose tags match the query via a subquery join.
+     *
+     * @return LengthAwarePaginator<int, Package>
+     */
     private function fullTextSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
         $tsQuery = "plainto_tsquery('english', ?)";
@@ -61,7 +79,13 @@ class PackageSearchService
         return $query->paginate(perPage: $request->per_page, page: $request->page);
     }
 
-    /** @return LengthAwarePaginator<int, Package> */
+    /**
+     * Fallback search using pg_trgm trigram similarity on name and slug.
+     *
+     * Used when full-text search returns no results, to catch fuzzy/partial matches.
+     *
+     * @return LengthAwarePaginator<int, Package>
+     */
     private function trigramSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
         $query = Package::with(self::EAGER_LOAD)
@@ -76,7 +100,9 @@ class PackageSearchService
 
     /**
      * Filter packages to those having at least one release compatible with the given requirements.
-     * e.g. ?requires[typo3]=12.4 finds packages with a release requiring typo3 <= 12.4
+     *
+     * Compares dotted version strings as integer arrays, e.g. ?requires[typo3]=12.4 finds
+     * packages with a release requiring typo3 <= 12.4. Multiple requirements are ANDed together.
      *
      * @param Builder<Package> $query
      */

@@ -9,6 +9,12 @@ use Bag\Attributes\StripExtraParameters;
 use Bag\Attributes\Transforms;
 use Illuminate\Http\Request;
 
+/**
+ * Validated search request for the GET /packages/{type} endpoint.
+ *
+ * Constructed automatically from the HTTP request via Bag's service provider.
+ * The `type` route parameter is resolved via #[FromRouteParameter].
+ */
 #[StripExtraParameters]
 readonly class PackageSearchRequest extends DTO
 {
@@ -22,7 +28,13 @@ readonly class PackageSearchRequest extends DTO
         public int $per_page = 24,
     ) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * Transform an incoming HTTP request into constructor arguments.
+     *
+     * Validates query parameters and extracts the package type from the route.
+     *
+     * @return array<string, mixed>
+     */
     #[Transforms(Request::class)]
     public static function fromRequest(Request $request): array
     {

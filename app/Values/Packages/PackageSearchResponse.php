@@ -8,6 +8,11 @@ use App\Values\DTO;
 use Bag\Attributes\Transforms;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
+/**
+ * Response DTO for the package search endpoint.
+ *
+ * Wraps paginated results with pagination info and FAIR metadata for each package.
+ */
 readonly class PackageSearchResponse extends DTO
 {
     /**
@@ -20,6 +25,10 @@ readonly class PackageSearchResponse extends DTO
     ) {}
 
     /**
+     * Transform a paginator of Package models into the response structure.
+     *
+     * Each package is converted to its FAIR metadata representation.
+     *
      * @param LengthAwarePaginator<int, Package> $paginator
      * @return array<string, mixed>
      */
