@@ -12,8 +12,11 @@ class PackageSearchService
     /** @return LengthAwarePaginator<int, Package> */
     public function search(string $type, ?string $query, int $page = 1, int $perPage = 24): LengthAwarePaginator
     {
+        $eagerLoad = ['releases', 'authors', 'tags', 'metas'];
+
         if ($query === null || $query === '') {
-            return Package::where('type', $type)
+            return Package::with($eagerLoad)
+                ->where('type', $type)
                 ->orderByDesc('created_at')
                 ->paginate(perPage: $perPage, page: $page);
         }
@@ -34,7 +37,8 @@ class PackageSearchService
     {
         $tsQuery = "plainto_tsquery('english', ?)";
 
-        return Package::where('type', $type)
+        return Package::with(['releases', 'authors', 'tags', 'metas'])
+            ->where('type', $type)
             ->where(function ($q) use ($tsQuery, $query) {
                 $q->whereRaw("search_vector @@ {$tsQuery}", [$query])
                     ->orWhereExists(function ($sub) use ($query) {
@@ -52,7 +56,8 @@ class PackageSearchService
     /** @return LengthAwarePaginator<int, Package> */
     private function trigramSearch(string $type, string $query, int $page, int $perPage): LengthAwarePaginator
     {
-        return Package::where('type', $type)
+        return Package::with(['releases', 'authors', 'tags', 'metas'])
+            ->where('type', $type)
             ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$query, $query])
             ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$query, $query])
             ->paginate(perPage: $perPage, page: $page);

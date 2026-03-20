@@ -66,10 +66,7 @@ class PackageFactory extends Factory
 
                 return PackageTag::query()->firstOrCreate(
                     ['slug' => $slug],
-                    [
-                        'id' => $this->faker->uuid(),
-                        'name' => $tagName,
-                    ],
+                    ['name' => $tagName],
                 );
             });
 
