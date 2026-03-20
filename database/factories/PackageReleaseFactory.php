@@ -19,7 +19,7 @@ class PackageReleaseFactory extends Factory
             'version' => $this->faker->semver(),
             'download_url' => $this->faker->url(),
             'requires' => [
-                'php' => $this->faker->randomElement(['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']),
+                'php' => $this->faker->randomElement(['8.0', '8.1', '8.2', '8.3']),
             ],
             'suggests' => [
                 'another-plugin' => $this->faker->semver(),
@@ -36,5 +36,15 @@ class PackageReleaseFactory extends Factory
                 ],
             ],
         ];
+    }
+
+    public function typo3(): static
+    {
+        return $this->state(fn () => [
+            'requires' => [
+                'typo3' => $this->faker->randomElement(['11.5', '12.4', '13.4']),
+                'php' => $this->faker->randomElement(['8.1', '8.2', '8.3', '8.4']),
+            ],
+        ]);
     }
 }

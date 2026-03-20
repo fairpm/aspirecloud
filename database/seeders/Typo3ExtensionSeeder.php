@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Package;
+use App\Models\PackageRelease;
+use Database\Factories\PackageReleaseFactory;
 use Illuminate\Database\Seeder;
 
 class Typo3ExtensionSeeder extends Seeder
@@ -31,13 +33,20 @@ class Typo3ExtensionSeeder extends Seeder
             $tags = $ext['tags'];
             unset($ext['tags']);
 
-            Package::factory()
+            $package = Package::factory()
                 ->withAuthors()
-                ->withReleases(2)
                 ->withMetas()
                 ->withSpecificTags($tags)
                 ->typo3Extension()
                 ->create($ext);
+
+            $package->releases()->createMany(
+                PackageReleaseFactory::new()
+                    ->typo3()
+                    ->count(2)
+                    ->make(['package_id' => $package->id])
+                    ->toArray(),
+            );
         }
     }
 }
