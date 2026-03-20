@@ -4,62 +4,63 @@ declare(strict_types=1);
 namespace App\Services\Packages;
 
 use App\Models\Package;
+use App\Values\Packages\PackageSearchRequest;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class PackageSearchService
 {
-    /** @return LengthAwarePaginator<int, Package> */
-    public function search(string $type, ?string $query, int $page = 1, int $perPage = 24): LengthAwarePaginator
-    {
-        $eagerLoad = ['releases', 'authors', 'tags', 'metas'];
+    private const EAGER_LOAD = ['releases', 'authors', 'tags', 'metas'];
 
-        if ($query === null || $query === '') {
-            return Package::with($eagerLoad)
-                ->where('type', $type)
+    /** @return LengthAwarePaginator<int, Package> */
+    public function search(PackageSearchRequest $request): LengthAwarePaginator
+    {
+        if ($request->q === null || $request->q === '') {
+            return Package::with(self::EAGER_LOAD)
+                ->where('type', $request->type)
                 ->orderByDesc('created_at')
-                ->paginate(perPage: $perPage, page: $page);
+                ->paginate(perPage: $request->per_page, page: $request->page);
         }
 
         // Try full-text search first
-        $results = $this->fullTextSearch($type, $query, $page, $perPage);
+        $results = $this->fullTextSearch($request);
 
         if ($results->total() > 0) {
             return $results;
         }
 
         // Fall back to trigram similarity
-        return $this->trigramSearch($type, $query, $page, $perPage);
+        return $this->trigramSearch($request);
     }
 
     /** @return LengthAwarePaginator<int, Package> */
-    private function fullTextSearch(string $type, string $query, int $page, int $perPage): LengthAwarePaginator
+    private function fullTextSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
         $tsQuery = "plainto_tsquery('english', ?)";
 
-        return Package::with(['releases', 'authors', 'tags', 'metas'])
-            ->where('type', $type)
-            ->where(function ($q) use ($tsQuery, $query) {
-                $q->whereRaw("search_vector @@ {$tsQuery}", [$query])
-                    ->orWhereExists(function ($sub) use ($query) {
+        return Package::with(self::EAGER_LOAD)
+            ->where('type', $request->type)
+            ->where(function ($q) use ($tsQuery, $request) {
+                $q->whereRaw("search_vector @@ {$tsQuery}", [$request->q])
+                    ->orWhereExists(function ($sub) use ($request) {
                         $sub->select(DB::raw(1))
                             ->from('package_package_tag')
                             ->join('package_tags', 'package_tags.id', '=', 'package_package_tag.package_tag_id')
                             ->whereColumn('package_package_tag.package_id', 'packages.id')
-                            ->whereRaw("to_tsvector('english', package_tags.name) @@ plainto_tsquery('english', ?)", [$query]);
+                            ->whereRaw("to_tsvector('english', package_tags.name) @@ plainto_tsquery('english', ?)", [$request->q]);
                     });
             })
-            ->orderByRaw("ts_rank(search_vector, {$tsQuery}) DESC", [$query])
-            ->paginate(perPage: $perPage, page: $page);
+            ->orderByRaw("ts_rank(search_vector, {$tsQuery}) DESC", [$request->q])
+            ->paginate(perPage: $request->per_page, page: $request->page);
     }
 
     /** @return LengthAwarePaginator<int, Package> */
-    private function trigramSearch(string $type, string $query, int $page, int $perPage): LengthAwarePaginator
+    private function trigramSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
-        return Package::with(['releases', 'authors', 'tags', 'metas'])
-            ->where('type', $type)
-            ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$query, $query])
-            ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$query, $query])
-            ->paginate(perPage: $perPage, page: $page);
+        return Package::with(self::EAGER_LOAD)
+            ->where('type', $request->type)
+            ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$request->q, $request->q])
+            ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$request->q, $request->q])
+            ->paginate(perPage: $request->per_page, page: $request->page);
     }
 }
