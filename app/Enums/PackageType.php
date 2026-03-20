@@ -8,6 +8,7 @@ enum PackageType: string
     case CORE = 'wp-core';
     case PLUGIN = 'wp-plugin';
     case THEME = 'wp-theme';
+    case TYPO3_PLUGIN = 'typo3-plugin';
 
     /**
      * Get the list of package type values.
