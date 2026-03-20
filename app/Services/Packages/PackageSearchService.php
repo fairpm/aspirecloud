@@ -6,6 +6,7 @@ namespace App\Services\Packages;
 use App\Models\Package;
 use App\Values\Packages\PackageSearchRequest;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class PackageSearchService
@@ -16,10 +17,13 @@ class PackageSearchService
     public function search(PackageSearchRequest $request): LengthAwarePaginator
     {
         if ($request->q === null || $request->q === '') {
-            return Package::with(self::EAGER_LOAD)
+            $query = Package::with(self::EAGER_LOAD)
                 ->where('type', $request->type)
-                ->orderByDesc('created_at')
-                ->paginate(perPage: $request->per_page, page: $request->page);
+                ->orderByDesc('created_at');
+
+            $this->applyRequiresFilter($query, $request);
+
+            return $query->paginate(perPage: $request->per_page, page: $request->page);
         }
 
         // Try full-text search first
@@ -38,7 +42,7 @@ class PackageSearchService
     {
         $tsQuery = "plainto_tsquery('english', ?)";
 
-        return Package::with(self::EAGER_LOAD)
+        $query = Package::with(self::EAGER_LOAD)
             ->where('type', $request->type)
             ->where(function ($q) use ($tsQuery, $request) {
                 $q->whereRaw("search_vector @@ {$tsQuery}", [$request->q])
@@ -50,17 +54,49 @@ class PackageSearchService
                             ->whereRaw("to_tsvector('english', package_tags.name) @@ plainto_tsquery('english', ?)", [$request->q]);
                     });
             })
-            ->orderByRaw("ts_rank(search_vector, {$tsQuery}) DESC", [$request->q])
-            ->paginate(perPage: $request->per_page, page: $request->page);
+            ->orderByRaw("ts_rank(search_vector, {$tsQuery}) DESC", [$request->q]);
+
+        $this->applyRequiresFilter($query, $request);
+
+        return $query->paginate(perPage: $request->per_page, page: $request->page);
     }
 
     /** @return LengthAwarePaginator<int, Package> */
     private function trigramSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
-        return Package::with(self::EAGER_LOAD)
+        $query = Package::with(self::EAGER_LOAD)
             ->where('type', $request->type)
             ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$request->q, $request->q])
-            ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$request->q, $request->q])
-            ->paginate(perPage: $request->per_page, page: $request->page);
+            ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$request->q, $request->q]);
+
+        $this->applyRequiresFilter($query, $request);
+
+        return $query->paginate(perPage: $request->per_page, page: $request->page);
+    }
+
+    /**
+     * Filter packages to those having at least one release compatible with the given requirements.
+     * e.g. ?requires[typo3]=12.4 finds packages with a release requiring typo3 <= 12.4
+     *
+     * @param Builder<Package> $query
+     */
+    private function applyRequiresFilter(Builder $query, PackageSearchRequest $request): void
+    {
+        if (empty($request->requires)) {
+            return;
+        }
+
+        $query->whereExists(function ($sub) use ($request) {
+            $sub->select(DB::raw(1))
+                ->from('package_releases')
+                ->whereColumn('package_releases.package_id', 'packages.id');
+
+            foreach ($request->requires as $key => $version) {
+                $sub->whereRaw(
+                    "package_releases.requires->>? IS NOT NULL AND string_to_array(package_releases.requires->>?, '.')::int[] <= string_to_array(?, '.')::int[]",
+                    [$key, $key, $version],
+                );
+            }
+        });
     }
 }

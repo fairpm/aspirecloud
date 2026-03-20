@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Models\Package;
+use Database\Factories\PackageReleaseFactory;
 
 beforeEach(function () {
     Package::truncate();
@@ -180,6 +181,64 @@ it('returns FAIR metadata structure', function () {
                 ],
             ],
         ]);
+});
+
+it('filters by requires version', function () {
+    // Package requiring TYPO3 11.5
+    $old = Package::factory()->withAuthors()->withMetas()->typo3Extension()
+        ->create(['name' => 'Old Extension', 'slug' => 'old-ext']);
+    $old->releases()->createMany(
+        PackageReleaseFactory::new()->count(1)->make([
+            'package_id' => $old->id,
+            'requires' => ['typo3' => '11.5', 'php' => '8.1'],
+        ])->toArray(),
+    );
+
+    // Package requiring TYPO3 13.4
+    $new = Package::factory()->withAuthors()->withMetas()->typo3Extension()
+        ->create(['name' => 'New Extension', 'slug' => 'new-ext']);
+    $new->releases()->createMany(
+        PackageReleaseFactory::new()->count(1)->make([
+            'package_id' => $new->id,
+            'requires' => ['typo3' => '13.4', 'php' => '8.2'],
+        ])->toArray(),
+    );
+
+    // Filter for TYPO3 12.4 — only the 11.5 package qualifies
+    $this->getJson('/packages/typo3-extension?requires[typo3]=12.4')
+        ->assertOk()
+        ->assertJsonCount(1, 'packages')
+        ->assertJsonPath('packages.0.name', 'Old Extension');
+
+    // Filter for TYPO3 13.4 — both qualify
+    $this->getJson('/packages/typo3-extension?requires[typo3]=13.4')
+        ->assertOk()
+        ->assertJsonCount(2, 'packages');
+});
+
+it('filters by requires version combined with search', function () {
+    $match = Package::factory()->withAuthors()->withMetas()->typo3Extension()
+        ->create(['name' => 'Gallery Pro', 'slug' => 'gallery-pro']);
+    $match->releases()->createMany(
+        PackageReleaseFactory::new()->count(1)->make([
+            'package_id' => $match->id,
+            'requires' => ['typo3' => '12.4', 'php' => '8.1'],
+        ])->toArray(),
+    );
+
+    $tooNew = Package::factory()->withAuthors()->withMetas()->typo3Extension()
+        ->create(['name' => 'Gallery Ultra', 'slug' => 'gallery-ultra']);
+    $tooNew->releases()->createMany(
+        PackageReleaseFactory::new()->count(1)->make([
+            'package_id' => $tooNew->id,
+            'requires' => ['typo3' => '13.4', 'php' => '8.3'],
+        ])->toArray(),
+    );
+
+    $this->getJson('/packages/typo3-extension?q=gallery&requires[typo3]=12.4')
+        ->assertOk()
+        ->assertJsonCount(1, 'packages')
+        ->assertJsonPath('packages.0.name', 'Gallery Pro');
 });
 
 it('returns empty packages array with zero total when no results', function () {

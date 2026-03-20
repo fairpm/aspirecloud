@@ -12,10 +12,12 @@ use Illuminate\Http\Request;
 #[StripExtraParameters]
 readonly class PackageSearchRequest extends DTO
 {
+    /** @param array<string, string>|null $requires */
     public function __construct(
         #[FromRouteParameter]
         public string $type,
         public ?string $q = null,
+        public ?array $requires = null,
         public int $page = 1,
         public int $per_page = 24,
     ) {}
@@ -26,6 +28,8 @@ readonly class PackageSearchRequest extends DTO
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:200'],
+            'requires' => ['nullable', 'array'],
+            'requires.*' => ['string', 'max:20'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
@@ -33,6 +37,7 @@ readonly class PackageSearchRequest extends DTO
         return [
             'type' => $request->route('type'),
             'q' => $validated['q'] ?? null,
+            'requires' => $validated['requires'] ?? null,
             'page' => (int) ($validated['page'] ?? 1),
             'per_page' => (int) ($validated['per_page'] ?? 24),
         ];
