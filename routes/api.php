@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\API\Elastic\ElasticSearchController;
 use App\Http\Controllers\API\FAIR\Packages\PackageInformationController;
+use App\Http\Controllers\API\FAIR\Packages\PackageSearchController;
 use App\Http\Controllers\API\Metrics\MetricsController;
 use App\Http\Controllers\API\WpOrg\Core\BrowseHappyController;
 use App\Http\Controllers\API\WpOrg\Core\ImportersController;
@@ -37,11 +38,15 @@ Route::prefix('/')
             ->name('api.metrics');
 
         //// FAIR metadata
+        $router->get('/packages/{type}', PackageSearchController::class)
+            ->where('type', implode('|', \App\Enums\PackageType::values()))
+            ->name('package.search');
+
         $router->get('/packages/{did}', [PackageInformationController::class, 'fairMetadata'])
             ->name('package.fairMetadata');
 
         $router->get('/packages/{type}/{slug}/did.json', [PackageInformationController::class, 'didDocument'])
-            ->where('type', 'wp-plugin|wp-theme|wp-core')
+            ->where('type', implode('|', \App\Enums\PackageType::values()))
             ->name('package.didDocument');
 
         Route::get('/plugins/search', [ElasticSearchController::class, 'searchPlugins']);
