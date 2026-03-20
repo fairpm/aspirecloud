@@ -20,7 +20,7 @@ class PackageFactory extends Factory
         $did = 'fake:' . $this->faker->slug();
         $name = $this->faker->words(3, true);
         $slug = Str::slug($name);
-        $type = $this->faker->randomElement(['wp-plugin', 'wp-theme', 'wp-core', 'typo3-plugin']);
+        $type = $this->faker->randomElement(['wp-plugin', 'wp-theme', 'wp-core', 'typo3-extension']);
         $origin = $this->faker->randomElement(['fair', 'wp']);
         $license = $this->faker->randomElement(['GPLv2', 'GPLv3', 'MIT', 'Apache-2.0', 'Proprietary']);
 
@@ -41,9 +41,9 @@ class PackageFactory extends Factory
     /**
      * Configure the model factory to create a plugin with tags
      */
-    public function typo3Plugin(): static
+    public function typo3Extension(): static
     {
-        return $this->state(['type' => 'typo3-plugin', 'origin' => 'fair']);
+        return $this->state(['type' => 'typo3-extension', 'origin' => 'fair']);
     }
 
     public function withTags(int $count = 3): static

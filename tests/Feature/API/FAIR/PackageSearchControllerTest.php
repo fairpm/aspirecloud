@@ -12,17 +12,17 @@ it('searches packages by name', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'Awesome Gallery', 'slug' => 'awesome-gallery']);
 
     Package::factory()
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'Simple Form', 'slug' => 'simple-form']);
 
-    $this->getJson('/packages/typo3-plugin?q=gallery')
+    $this->getJson('/packages/typo3-extension?q=gallery')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'Awesome Gallery');
@@ -33,7 +33,7 @@ it('searches packages by description', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create([
             'name' => 'Alpha Extension',
             'slug' => 'alpha-extension',
@@ -44,14 +44,14 @@ it('searches packages by description', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create([
             'name' => 'Beta Extension',
             'slug' => 'beta-extension',
             'description' => 'A simple contact form builder',
         ]);
 
-    $this->getJson('/packages/typo3-plugin?q=optimization')
+    $this->getJson('/packages/typo3-extension?q=optimization')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'Alpha Extension');
@@ -63,7 +63,7 @@ it('searches packages by tag name', function () {
         ->withReleases()
         ->withMetas()
         ->withSpecificTags(['seo', 'marketing'])
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'SEO Master', 'slug' => 'seo-master']);
 
     Package::factory()
@@ -71,10 +71,10 @@ it('searches packages by tag name', function () {
         ->withReleases()
         ->withMetas()
         ->withSpecificTags(['gallery', 'media'])
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'Photo Viewer', 'slug' => 'photo-viewer']);
 
-    $this->getJson('/packages/typo3-plugin?q=marketing')
+    $this->getJson('/packages/typo3-extension?q=marketing')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'SEO Master');
@@ -85,7 +85,7 @@ it('filters by type', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'TYPO3 Extension', 'slug' => 'typo3-extension']);
 
     Package::factory()
@@ -94,10 +94,10 @@ it('filters by type', function () {
         ->withMetas()
         ->create(['name' => 'WP Plugin', 'slug' => 'wp-plugin-test', 'type' => 'wp-plugin', 'origin' => 'wp']);
 
-    $this->getJson('/packages/typo3-plugin')
+    $this->getJson('/packages/typo3-extension')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
-        ->assertJsonPath('packages.0.type', 'typo3-plugin');
+        ->assertJsonPath('packages.0.type', 'typo3-extension');
 
     $this->getJson('/packages/wp-plugin')
         ->assertOk()
@@ -110,17 +110,17 @@ it('returns all packages of type when no query, newest first', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'Old Package', 'slug' => 'old-package', 'created_at' => now()->subDays(10)]);
 
     Package::factory()
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'New Package', 'slug' => 'new-package', 'created_at' => now()]);
 
-    $response = $this->getJson('/packages/typo3-plugin')
+    $response = $this->getJson('/packages/typo3-extension')
         ->assertOk()
         ->assertJsonCount(2, 'packages');
 
@@ -133,10 +133,10 @@ it('paginates results', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create();
 
-    $this->getJson('/packages/typo3-plugin?per_page=10&page=1')
+    $this->getJson('/packages/typo3-extension?per_page=10&page=1')
         ->assertOk()
         ->assertJsonPath('info.page', 1)
         ->assertJsonPath('info.per_page', 10)
@@ -144,7 +144,7 @@ it('paginates results', function () {
         ->assertJsonPath('info.pages', 3)
         ->assertJsonCount(10, 'packages');
 
-    $this->getJson('/packages/typo3-plugin?per_page=10&page=3')
+    $this->getJson('/packages/typo3-extension?per_page=10&page=3')
         ->assertOk()
         ->assertJsonPath('info.page', 3)
         ->assertJsonCount(10, 'packages');
@@ -160,10 +160,10 @@ it('returns FAIR metadata structure', function () {
         ->withAuthors()
         ->withReleases()
         ->withMetas()
-        ->typo3Plugin()
+        ->typo3Extension()
         ->create(['name' => 'Test Package', 'slug' => 'test-package']);
 
-    $this->getJson('/packages/typo3-plugin')
+    $this->getJson('/packages/typo3-extension')
         ->assertOk()
         ->assertJsonStructure([
             'info' => ['page', 'per_page', 'total', 'pages'],
@@ -183,7 +183,7 @@ it('returns FAIR metadata structure', function () {
 });
 
 it('returns empty packages array with zero total when no results', function () {
-    $this->getJson('/packages/typo3-plugin?q=nonexistent')
+    $this->getJson('/packages/typo3-extension?q=nonexistent')
         ->assertOk()
         ->assertJsonPath('info.total', 0)
         ->assertJsonPath('info.pages', 1)
