@@ -20,7 +20,7 @@ class PackageFactory extends Factory
         $did = 'fake:' . $this->faker->slug();
         $name = $this->faker->words(3, true);
         $slug = Str::slug($name);
-        $type = $this->faker->randomElement(['wp-plugin', 'wp-theme', 'wp-core', 'typo3-core', 'typo3-extension', 'typo3-theme']);
+        $type = $this->faker->randomElement(['wp-plugin', 'wp-theme', 'wp-core', 'typo3-core', 'typo3-extension']);
         $origin = $this->faker->randomElement(['fair', 'wp']);
         $license = $this->faker->randomElement(['GPLv2', 'GPLv3', 'MIT', 'Apache-2.0', 'Proprietary']);
 
