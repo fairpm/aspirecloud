@@ -59,10 +59,12 @@ readonly class PackageData extends DTO
             $fairMetadata->authors,
         );
 
-        $security = array_map(
-            fn($item) => array_filter($item, fn($value) => $value !== null),
-            $fairMetadata->security,
-        );
+        $security = is_array($fairMetadata->security)
+            ? array_map(
+                fn($item) => array_filter($item, fn($value) => $value !== null),
+                $fairMetadata->security,
+            )
+            : [];
 
         $tags = $fairMetadata->raw_metadata['keywords'] ?? [];
 
@@ -83,7 +85,7 @@ readonly class PackageData extends DTO
             'tags' => $tags,
         ];
 
-        if ($fairMetadata->sections) {
+        if (is_array($fairMetadata->sections)) {
             $ret['sections'] = $fairMetadata->sections;
         }
 
