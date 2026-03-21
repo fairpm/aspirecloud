@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read array<string, mixed>|null     $artifacts
  * @property-read string|null                   $signature
  * @property-read string|null                   $checksum
+ * @property-read CarbonImmutable|null          $reported
  * @property-read CarbonImmutable|null          $created_at
  * @property-read Package|null                  $package
  */
@@ -45,6 +46,7 @@ class PackageRelease extends BaseModel
             'suggests' => 'array',
             'provides' => 'array',
             'artifacts' => 'array',
+            'reported' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
         ];
     }

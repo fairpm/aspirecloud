@@ -27,6 +27,7 @@ class PackageReleaseFactory extends Factory
             'provides' => [
                 'some-feature' => $this->faker->semver(),
             ],
+            'reported' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'artifacts' => [
                 'package' => [
                     [
