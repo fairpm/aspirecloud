@@ -7,7 +7,7 @@ use App\Models\Package;
 use App\Models\PackageRelease;
 use App\Values\Packages\PackageSearchRequest;
 use Composer\Semver\Semver;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
