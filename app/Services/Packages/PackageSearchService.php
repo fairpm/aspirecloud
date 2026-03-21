@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\DB;
  */
 class PackageSearchService
 {
-    /** @var list<string> Relations to eager load to avoid N+1 queries when building FAIR metadata. */
-    private const EAGER_LOAD = ['releases', 'authors', 'tags', 'metas'];
+    /** @var list<string> Relations to eager load (besides releases) to avoid N+1 queries when building FAIR metadata. */
+    private const EAGER_LOAD_BASE = ['authors', 'tags', 'metas'];
 
     /**
      * Search packages by type with optional query and version requirements.
@@ -29,7 +29,7 @@ class PackageSearchService
     public function search(PackageSearchRequest $request): LengthAwarePaginator
     {
         if ($request->q === null || $request->q === '') {
-            $query = Package::with(self::EAGER_LOAD)
+            $query = Package::with($this->eagerLoads($request))
                 ->where('type', $request->type)
                 ->orderByDesc('created_at');
 
@@ -60,7 +60,7 @@ class PackageSearchService
     {
         $tsQuery = "plainto_tsquery('english', ?)";
 
-        $query = Package::with(self::EAGER_LOAD)
+        $query = Package::with($this->eagerLoads($request))
             ->where('type', $request->type)
             ->where(function ($q) use ($tsQuery, $request) {
                 $q->whereRaw("search_vector @@ {$tsQuery}", [$request->q])
@@ -88,7 +88,7 @@ class PackageSearchService
      */
     private function trigramSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
-        $query = Package::with(self::EAGER_LOAD)
+        $query = Package::with($this->eagerLoads($request))
             ->where('type', $request->type)
             ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$request->q, $request->q])
             ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$request->q, $request->q]);
@@ -124,5 +124,34 @@ class PackageSearchService
                 );
             }
         });
+    }
+
+    /**
+     * Build the eager-load array, constraining releases when a requires filter is active.
+     *
+     * When a requires filter is present, only releases whose version requirements
+     * satisfy the filter are loaded — so the response omits incompatible releases.
+     *
+     * @return array<int|string, string|\Closure>
+     */
+    private function eagerLoads(PackageSearchRequest $request): array
+    {
+        if (empty($request->requires)) {
+            return array_merge(['releases'], self::EAGER_LOAD_BASE);
+        }
+
+        return array_merge(
+            [
+                'releases' => function ($query) use ($request) {
+                    foreach ($request->requires as $key => $version) {
+                        $query->whereRaw(
+                            "package_releases.requires->>? IS NOT NULL AND string_to_array(package_releases.requires->>?, '.')::int[] <= string_to_array(?, '.')::int[]",
+                            [$key, $key, $version],
+                        );
+                    }
+                },
+            ],
+            self::EAGER_LOAD_BASE,
+        );
     }
 }

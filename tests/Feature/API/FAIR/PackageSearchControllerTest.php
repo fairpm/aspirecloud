@@ -241,6 +241,42 @@ it('filters by requires version combined with search', function () {
         ->assertJsonPath('packages.0.name', 'Gallery Pro');
 });
 
+it('only includes matching releases when filtering by requires', function () {
+    // Package with two releases: one for TYPO3 11.5 and one for TYPO3 13.4
+    $package = Package::factory()->withAuthors()->withMetas()->typo3Extension()
+        ->create(['name' => 'Multi Release Ext', 'slug' => 'multi-release-ext']);
+
+    $package->releases()->createMany([
+        PackageReleaseFactory::new()->make([
+            'package_id' => $package->id,
+            'version' => '1.0.0',
+            'requires' => ['typo3' => '11.5', 'php' => '8.1'],
+        ])->toArray(),
+        PackageReleaseFactory::new()->make([
+            'package_id' => $package->id,
+            'version' => '2.0.0',
+            'requires' => ['typo3' => '13.4', 'php' => '8.2'],
+        ])->toArray(),
+    ]);
+
+    // Filter for TYPO3 12.4 — only the 11.5 release qualifies
+    $response = $this->getJson('/packages/typo3-extension?requires[typo3]=12.4')
+        ->assertOk()
+        ->assertJsonCount(1, 'packages');
+
+    $releases = $response->json('packages.0.releases');
+    expect($releases)->toHaveCount(1);
+    expect($releases[0]['version'])->toBe('1.0.0');
+
+    // Without requires filter — both releases should be returned
+    $response = $this->getJson('/packages/typo3-extension')
+        ->assertOk()
+        ->assertJsonCount(1, 'packages');
+
+    $releases = $response->json('packages.0.releases');
+    expect($releases)->toHaveCount(2);
+});
+
 it('returns empty packages array with zero total when no results', function () {
     $this->getJson('/packages/typo3-extension?q=nonexistent')
         ->assertOk()
