@@ -190,7 +190,7 @@ it('filters by requires version using Composer constraints', function () {
     $old->releases()->createMany(
         PackageReleaseFactory::new()->count(1)->make([
             'package_id' => $old->id,
-            'requires' => ['typo3' => '>=11.5.0 <=11.99.99', 'php' => '^8.1'],
+            'requires' => ['env:typo3' => '>=11.5.0 <=11.99.99', 'env:php' => '^8.1'],
         ])->toArray(),
     );
 
@@ -200,18 +200,18 @@ it('filters by requires version using Composer constraints', function () {
     $new->releases()->createMany(
         PackageReleaseFactory::new()->count(1)->make([
             'package_id' => $new->id,
-            'requires' => ['typo3' => '>=13.4.0 <=13.99.99', 'php' => '^8.2'],
+            'requires' => ['env:typo3' => '>=13.4.0 <=13.99.99', 'env:php' => '^8.2'],
         ])->toArray(),
     );
 
     // Filter for TYPO3 11.5.19 — only the 11.x package qualifies
-    $this->getJson('/packages/typo3-extension?requires[typo3]=11.5.19')
+    $this->getJson('/packages/typo3-extension?requires[env:typo3]=11.5.19')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'Old Extension');
 
     // Filter for TYPO3 13.4 — only the 13.x package qualifies
-    $this->getJson('/packages/typo3-extension?requires[typo3]=13.4')
+    $this->getJson('/packages/typo3-extension?requires[env:typo3]=13.4')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'New Extension');
@@ -224,17 +224,17 @@ it('excludes packages when version is outside constraint range', function () {
     $pkg->releases()->createMany(
         PackageReleaseFactory::new()->count(1)->make([
             'package_id' => $pkg->id,
-            'requires' => ['typo3' => '>=11.5.19 <=12.9.99', 'php' => '^8.1'],
+            'requires' => ['env:typo3' => '>=11.5.19 <=12.9.99', 'env:php' => '^8.1'],
         ])->toArray(),
     );
 
     // TYPO3 14.2 is above the upper bound — should return no packages
-    $this->getJson('/packages/typo3-extension?requires[typo3]=14.2')
+    $this->getJson('/packages/typo3-extension?requires[env:typo3]=14.2')
         ->assertOk()
         ->assertJsonCount(0, 'packages');
 
     // TYPO3 12.4 is within the range — should match
-    $this->getJson('/packages/typo3-extension?requires[typo3]=12.4')
+    $this->getJson('/packages/typo3-extension?requires[env:typo3]=12.4')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'Range Extension');
@@ -246,7 +246,7 @@ it('filters by requires version combined with search', function () {
     $match->releases()->createMany(
         PackageReleaseFactory::new()->count(1)->make([
             'package_id' => $match->id,
-            'requires' => ['typo3' => '>=12.4.0 <=12.99.99', 'php' => '^8.1'],
+            'requires' => ['env:typo3' => '>=12.4.0 <=12.99.99', 'env:php' => '^8.1'],
         ])->toArray(),
     );
 
@@ -255,11 +255,11 @@ it('filters by requires version combined with search', function () {
     $tooNew->releases()->createMany(
         PackageReleaseFactory::new()->count(1)->make([
             'package_id' => $tooNew->id,
-            'requires' => ['typo3' => '>=13.4.0 <=13.99.99', 'php' => '^8.3'],
+            'requires' => ['env:typo3' => '>=13.4.0 <=13.99.99', 'env:php' => '^8.3'],
         ])->toArray(),
     );
 
-    $this->getJson('/packages/typo3-extension?q=gallery&requires[typo3]=12.4')
+    $this->getJson('/packages/typo3-extension?q=gallery&requires[env:typo3]=12.4')
         ->assertOk()
         ->assertJsonCount(1, 'packages')
         ->assertJsonPath('packages.0.name', 'Gallery Pro');
@@ -274,17 +274,17 @@ it('only includes matching releases when filtering by requires', function () {
         PackageReleaseFactory::new()->make([
             'package_id' => $package->id,
             'version' => '1.0.0',
-            'requires' => ['typo3' => '>=11.5.0 <=11.99.99', 'php' => '^8.1'],
+            'requires' => ['env:typo3' => '>=11.5.0 <=11.99.99', 'env:php' => '^8.1'],
         ])->toArray(),
         PackageReleaseFactory::new()->make([
             'package_id' => $package->id,
             'version' => '2.0.0',
-            'requires' => ['typo3' => '>=13.4.0 <=13.99.99', 'php' => '^8.2'],
+            'requires' => ['env:typo3' => '>=13.4.0 <=13.99.99', 'env:php' => '^8.2'],
         ])->toArray(),
     ]);
 
     // Filter for TYPO3 11.5.19 — only the 11.x release qualifies
-    $response = $this->getJson('/packages/typo3-extension?requires[typo3]=11.5.19')
+    $response = $this->getJson('/packages/typo3-extension?requires[env:typo3]=11.5.19')
         ->assertOk()
         ->assertJsonCount(1, 'packages');
 
