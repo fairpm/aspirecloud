@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace App\Services\Packages;
 
 use App\Models\Package;
+use App\Models\PackageRelease;
 use App\Values\Packages\PackageSearchRequest;
+use Composer\Semver\Semver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class PackageSearchService
 {
-    /** @var list<string> Relations to eager load (besides releases) to avoid N+1 queries when building FAIR metadata. */
-    private const EAGER_LOAD_BASE = ['authors', 'tags', 'metas'];
+    /** @var list<string> Relations to eager load to avoid N+1 queries when building FAIR metadata. */
+    private const EAGER_LOAD = ['releases', 'authors', 'tags', 'metas'];
 
     /**
      * Search packages by type with optional query and version requirements.
@@ -29,13 +31,16 @@ class PackageSearchService
     public function search(PackageSearchRequest $request): LengthAwarePaginator
     {
         if ($request->q === null || $request->q === '') {
-            $query = Package::with($this->eagerLoads($request))
+            $query = Package::with(self::EAGER_LOAD)
                 ->where('type', $request->type)
                 ->orderByDesc('created_at');
 
             $this->applyRequiresFilter($query, $request);
 
-            return $query->paginate(perPage: $request->per_page, page: $request->page);
+            return $this->filterPaginatedReleases(
+                $query->paginate(perPage: $request->per_page, page: $request->page),
+                $request,
+            );
         }
 
         // Try full-text search first
@@ -60,7 +65,7 @@ class PackageSearchService
     {
         $tsQuery = "plainto_tsquery('english', ?)";
 
-        $query = Package::with($this->eagerLoads($request))
+        $query = Package::with(self::EAGER_LOAD)
             ->where('type', $request->type)
             ->where(function ($q) use ($tsQuery, $request) {
                 $q->whereRaw("search_vector @@ {$tsQuery}", [$request->q])
@@ -76,7 +81,10 @@ class PackageSearchService
 
         $this->applyRequiresFilter($query, $request);
 
-        return $query->paginate(perPage: $request->per_page, page: $request->page);
+        return $this->filterPaginatedReleases(
+            $query->paginate(perPage: $request->per_page, page: $request->page),
+            $request,
+        );
     }
 
     /**
@@ -88,21 +96,24 @@ class PackageSearchService
      */
     private function trigramSearch(PackageSearchRequest $request): LengthAwarePaginator
     {
-        $query = Package::with($this->eagerLoads($request))
+        $query = Package::with(self::EAGER_LOAD)
             ->where('type', $request->type)
             ->whereRaw('(similarity(name, ?) > 0.1 OR similarity(slug, ?) > 0.1)', [$request->q, $request->q])
             ->orderByRaw('GREATEST(similarity(name, ?), similarity(slug, ?)) DESC', [$request->q, $request->q]);
 
         $this->applyRequiresFilter($query, $request);
 
-        return $query->paginate(perPage: $request->per_page, page: $request->page);
+        return $this->filterPaginatedReleases(
+            $query->paginate(perPage: $request->per_page, page: $request->page),
+            $request,
+        );
     }
 
     /**
      * Filter packages to those having at least one release compatible with the given requirements.
      *
-     * Compares dotted version strings as integer arrays, e.g. ?requires[typo3]=12.4 finds
-     * packages with a release requiring typo3 <= 12.4. Multiple requirements are ANDed together.
+     * Uses Composer\Semver to evaluate version constraints stored in the requires JSONB field,
+     * supporting ranges like ">=11.5.19 <=12.9.99", caret (^12.4), tilde (~12.4), etc.
      *
      * @param Builder<Package> $query
      */
@@ -112,46 +123,66 @@ class PackageSearchService
             return;
         }
 
-        $query->whereExists(function ($sub) use ($request) {
-            $sub->select(DB::raw(1))
-                ->from('package_releases')
-                ->whereColumn('package_releases.package_id', 'packages.id');
+        // Find package IDs with at least one release satisfying all version constraints.
+        // SQL narrows to releases that have the required keys; PHP does constraint matching.
+        $candidateQuery = PackageRelease::query()->select('package_id', 'requires');
 
-            foreach ($request->requires as $key => $version) {
-                $sub->whereRaw(
-                    "package_releases.requires->>? IS NOT NULL AND string_to_array(package_releases.requires->>?, '.')::int[] <= string_to_array(?, '.')::int[]",
-                    [$key, $key, $version],
-                );
-            }
-        });
+        foreach ($request->requires as $key => $version) {
+            $candidateQuery->whereRaw('requires->>? IS NOT NULL', [$key]);
+        }
+
+        $matchingIds = $candidateQuery->get()
+            ->filter(fn (PackageRelease $release) => $this->releaseSatisfies($release, $request->requires))
+            ->pluck('package_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        $query->whereIn('packages.id', $matchingIds);
     }
 
     /**
-     * Build the eager-load array, constraining releases when a requires filter is active.
+     * Post-filter eager-loaded releases on paginated results using Composer\Semver.
      *
-     * When a requires filter is present, only releases whose version requirements
-     * satisfy the filter are loaded — so the response omits incompatible releases.
-     *
-     * @return array<int|string, string|\Closure>
+     * @param LengthAwarePaginator<int, Package> $results
+     * @return LengthAwarePaginator<int, Package>
      */
-    private function eagerLoads(PackageSearchRequest $request): array
+    private function filterPaginatedReleases(LengthAwarePaginator $results, PackageSearchRequest $request): LengthAwarePaginator
     {
         if (empty($request->requires)) {
-            return array_merge(['releases'], self::EAGER_LOAD_BASE);
+            return $results;
         }
 
-        return array_merge(
-            [
-                'releases' => function ($query) use ($request) {
-                    foreach ($request->requires as $key => $version) {
-                        $query->whereRaw(
-                            "package_releases.requires->>? IS NOT NULL AND string_to_array(package_releases.requires->>?, '.')::int[] <= string_to_array(?, '.')::int[]",
-                            [$key, $key, $version],
-                        );
-                    }
-                },
-            ],
-            self::EAGER_LOAD_BASE,
-        );
+        $results->getCollection()->each(function (Package $package) use ($request) {
+            $package->setRelation(
+                'releases',
+                $package->releases
+                    ->filter(fn (PackageRelease $release) => $this->releaseSatisfies($release, $request->requires))
+                    ->values(),
+            );
+        });
+
+        return $results;
+    }
+
+    /**
+     * Check if a release satisfies all version requirements using Composer\Semver.
+     *
+     * @param array<string, string> $requires Key-value pairs of dependency name to user-provided version
+     */
+    private function releaseSatisfies(PackageRelease $release, array $requires): bool
+    {
+        foreach ($requires as $key => $version) {
+            $constraint = $release->requires[$key] ?? null;
+            if ($constraint === null) {
+                return false;
+            }
+
+            if (! Semver::satisfies($version, $constraint)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

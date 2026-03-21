@@ -42,8 +42,13 @@ class PackageReleaseFactory extends Factory
     {
         return $this->state(fn () => [
             'requires' => [
-                'typo3' => $this->faker->randomElement(['11.5', '12.4', '13.4']),
-                'php' => $this->faker->randomElement(['8.1', '8.2', '8.3', '8.4']),
+                'typo3' => $this->faker->randomElement([
+                    '>=11.5.0 <=11.99.99',
+                    '>=12.4.0 <=12.99.99',
+                    '>=13.4.0 <=13.99.99',
+                    '>=11.5.0 <=12.99.99',
+                ]),
+                'php' => $this->faker->randomElement(['^8.1', '^8.2', '>=8.1']),
             ],
         ]);
     }
