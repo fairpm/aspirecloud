@@ -115,8 +115,9 @@ class PackageSearchService
      * Uses Composer\Semver to evaluate version constraints stored in the requires JSONB field,
      * supporting ranges like ">=11.5.19 <=12.9.99", caret (^12.4), tilde (~12.4), etc.
      *
-     * SQL narrows candidates using the GIN-indexed JSONB `?` operator (key existence) and
-     * scopes to the current package type. PHP then does precise constraint matching.
+     * Optimization: instead of loading all releases into PHP, we first collect the distinct
+     * constraint strings per key (typically only 20-50 unique values), run Semver::satisfies()
+     * on those, then use SQL to find package IDs whose releases match the valid constraints.
      *
      * @param Builder<Package> $query
      */
@@ -126,23 +127,43 @@ class PackageSearchService
             return;
         }
 
-        // Narrow to releases of matching package type that have the required JSONB keys.
-        // Uses the GIN index on requires via the ? operator for fast key-existence checks.
-        $candidateQuery = PackageRelease::query()
-            ->select('package_releases.package_id', 'package_releases.requires')
+        // Build a subquery that finds package IDs with at least one release matching all constraints.
+        // For each required key, we find the distinct constraint values, filter with Semver in PHP,
+        // then add a SQL condition for only the valid constraints.
+        $releaseQuery = DB::table('package_releases')
+            ->select('package_releases.package_id')
             ->join('packages', 'packages.id', '=', 'package_releases.package_id')
             ->where('packages.type', $request->type);
 
         foreach ($request->requires as $key => $version) {
-            $candidateQuery->whereRaw('jsonb_exists(package_releases.requires, ?)', [$key]);
+            // Get distinct constraint strings for this key (e.g. ">=11.5.0 <=12.99.99", "^12.4")
+            $distinctConstraints = DB::table('package_releases')
+                ->join('packages', 'packages.id', '=', 'package_releases.package_id')
+                ->where('packages.type', $request->type)
+                ->whereRaw('jsonb_exists(package_releases.requires, ?)', [$key])
+                ->selectRaw('DISTINCT package_releases.requires->>? as constraint_value', [$key])
+                ->pluck('constraint_value');
+
+            // Filter to constraints that the provided version satisfies
+            $validConstraints = $distinctConstraints
+                ->filter(fn (string $constraint) => Semver::satisfies($version, $constraint))
+                ->values()
+                ->all();
+
+            if (empty($validConstraints)) {
+                // No valid constraints found — no packages can match
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+
+            $releaseQuery->whereRaw(
+                'package_releases.requires->>? IN (' . implode(',', array_fill(0, count($validConstraints), '?')) . ')',
+                [$key, ...$validConstraints],
+            );
         }
 
-        $matchingIds = $candidateQuery->get()
-            ->filter(fn (PackageRelease $release) => $this->releaseSatisfies($release, $request->requires))
-            ->pluck('package_id')
-            ->unique()
-            ->values()
-            ->all();
+        $matchingIds = $releaseQuery->distinct()->pluck('package_id')->all();
 
         $query->whereIn('packages.id', $matchingIds);
     }
