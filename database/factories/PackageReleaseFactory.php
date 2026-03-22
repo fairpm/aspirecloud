@@ -19,7 +19,7 @@ class PackageReleaseFactory extends Factory
             'version' => $this->faker->semver(),
             'download_url' => $this->faker->url(),
             'requires' => [
-                'php' => $this->faker->randomElement(['8.0', '8.1', '8.2', '8.3']),
+                'env:php' => $this->faker->randomElement(['^8.0', '^8.1', '^8.2', '^8.3']),
             ],
             'suggests' => [
                 'another-plugin' => $this->faker->semver(),
@@ -42,8 +42,13 @@ class PackageReleaseFactory extends Factory
     {
         return $this->state(fn () => [
             'requires' => [
-                'typo3' => $this->faker->randomElement(['11.5', '12.4', '13.4']),
-                'php' => $this->faker->randomElement(['8.1', '8.2', '8.3', '8.4']),
+                'env:typo3' => $this->faker->randomElement([
+                    '>=11.5.0 <=11.99.99',
+                    '>=12.4.0 <=12.99.99',
+                    '>=13.4.0 <=13.99.99',
+                    '>=11.5.0 <=12.99.99',
+                ]),
+                'env:php' => $this->faker->randomElement(['^8.1', '^8.2', '>=8.1']),
             ],
         ]);
     }
