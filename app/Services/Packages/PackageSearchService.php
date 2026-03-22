@@ -115,6 +115,9 @@ class PackageSearchService
      * Uses Composer\Semver to evaluate version constraints stored in the requires JSONB field,
      * supporting ranges like ">=11.5.19 <=12.9.99", caret (^12.4), tilde (~12.4), etc.
      *
+     * SQL narrows candidates using the GIN-indexed JSONB `?` operator (key existence) and
+     * scopes to the current package type. PHP then does precise constraint matching.
+     *
      * @param Builder<Package> $query
      */
     private function applyRequiresFilter(Builder $query, PackageSearchRequest $request): void
@@ -123,12 +126,15 @@ class PackageSearchService
             return;
         }
 
-        // Find package IDs with at least one release satisfying all version constraints.
-        // SQL narrows to releases that have the required keys; PHP does constraint matching.
-        $candidateQuery = PackageRelease::query()->select('package_id', 'requires');
+        // Narrow to releases of matching package type that have the required JSONB keys.
+        // Uses the GIN index on requires via the ? operator for fast key-existence checks.
+        $candidateQuery = PackageRelease::query()
+            ->select('package_releases.package_id', 'package_releases.requires')
+            ->join('packages', 'packages.id', '=', 'package_releases.package_id')
+            ->where('packages.type', $request->type);
 
         foreach ($request->requires as $key => $version) {
-            $candidateQuery->whereRaw('requires->>? IS NOT NULL', [$key]);
+            $candidateQuery->whereRaw('jsonb_exists(package_releases.requires, ?)', [$key]);
         }
 
         $matchingIds = $candidateQuery->get()
