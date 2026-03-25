@@ -101,6 +101,8 @@ readonly class FairMetadata extends DTO
             ->releases
             ->map(fn($release) => [
                 'version' => $release->version,
+                'reported' => $release->reported?->toIso8601String(),
+                'discovered' => $release->created_at?->toIso8601String(),
                 'artifacts' => $release->artifacts,
                 'provides' => $release->provides,
                 'requires' => $release->requires,
