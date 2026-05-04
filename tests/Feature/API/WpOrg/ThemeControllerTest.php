@@ -66,7 +66,7 @@ it('returns theme_information (v1.1)', function () {
         ->assertStatus(200)
         ->assertJson([
             'author' => 'tmeister',
-            'download_link' => 'https://api.aspiredev.org/download/my-theme',
+            'download_link' => 'https://api.aspirecloud.localhost/download/my-theme',
             'downloaded' => 1000,
             'homepage' => 'https://wordpress.org/themes/my-theme/',
             'last_updated' => '2025-01-18',
@@ -103,7 +103,7 @@ it('returns all fields in theme_information (v1.2)', function () {
                 'user_nicename' => 'tmeister',
             ],
             'creation_time' => '2011-11-11 11:11:11',
-            'download_link' => 'https://api.aspiredev.org/download/my-theme',
+            'download_link' => 'https://api.aspirecloud.localhost/download/my-theme',
             'downloaded' => 1000,
             'external_repository_url' => 'https://test.com',
             'homepage' => 'https://wordpress.org/themes/my-theme/',
@@ -186,7 +186,7 @@ it('returns theme query results (v1.2)', function () {
             ],
         ])
         // GH-278: return all fields.  these are not normally returned by default by .org
-        ->assertJsonPath('themes.0.download_link', 'https://api.aspiredev.org/download/my-theme')
+        ->assertJsonPath('themes.0.download_link', 'https://api.aspirecloud.localhost/download/my-theme')
         ->assertJsonPath('themes.0.downloaded', 1000)
         ->assertJsonPath('themes.0.active_installs', 100)
         ->assertJsonPath('themes.0.tags.black', 'black');

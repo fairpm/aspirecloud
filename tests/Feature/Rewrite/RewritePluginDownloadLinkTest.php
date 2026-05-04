@@ -62,7 +62,7 @@ describe('Download URL Rewrites (Plugins)', function () {
             ],
         ];
         $plugin = Plugin::fromSyncMetadata($metadata);
-        expect($plugin->download_link)->toBe('https://api.aspiredev.org/download/plugin/0-errors.0.2.zip');
+        expect($plugin->download_link)->toBe('https://api.aspirecloud.localhost/download/plugin/0-errors.0.2.zip');
     });
 
     it('returns original url if no version found', function () {

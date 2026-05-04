@@ -82,7 +82,7 @@ describe('Download URL Rewrites (Plugins)', function () {
 
     it('uses link from version if no version in download_link', function () use ($md_100b) {
         $theme = Theme::fromSyncMetadata($md_100b);
-        expect($theme->download_link)->toBe('https://api.aspiredev.org/download/theme/100-bytes.1.1.3.zip');
+        expect($theme->download_link)->toBe('https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.3.zip');
     });
 
     it('returns original url if no version found', function () use ($md_100b) {

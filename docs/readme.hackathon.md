@@ -44,7 +44,7 @@ base=https://api.aspiredev.local
 # base=http://localhost:8099
 
 curl "$base/plugins/info/1.2/?action=plugin_information&slug=hello-dolly&_fair=1"
-curl "$base/packages/did:web:api.aspiredev.org:packages:wp-plugin:hello-dolly"
+curl "$base/packages/did:web:api.aspirecloud.localhost:packages:wp-plugin:hello-dolly"
 
 curl "$base/plugins/info/1.2/?action=query_plugins&browse=updated?_fair=1"
 curl "$base/packages/did:plc:afjf7gsjzsqmgc7dlhb553mv"

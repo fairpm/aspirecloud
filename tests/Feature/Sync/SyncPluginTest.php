@@ -157,14 +157,14 @@ describe('Sync Plugins', function () {
 
         // test URL rewrites
         expect($plugin->download_link)
-            ->toBe('https://api.aspiredev.org/download/plugin/0-errors.0.2.zip')
+            ->toBe('https://api.aspirecloud.localhost/download/plugin/0-errors.0.2.zip')
             ->and($plugin->icons)->toBe(
-                ['default' => 'https://api.aspiredev.org/download/gp-icon/plugin/0-errors/head/0-errors.svg'],
+                ['default' => 'https://api.aspirecloud.localhost/download/gp-icon/plugin/0-errors/head/0-errors.svg'],
             )
             ->and($plugin->versions)->toBe([
-                '0.1' => 'https://api.aspiredev.org/download/plugin/0-errors.0.1.zip',
-                '0.2' => 'https://api.aspiredev.org/download/plugin/0-errors.0.2.zip',
-                'trunk' => 'https://api.aspiredev.org/download/plugin/0-errors.zip',
+                '0.1' => 'https://api.aspirecloud.localhost/download/plugin/0-errors.0.1.zip',
+                '0.2' => 'https://api.aspirecloud.localhost/download/plugin/0-errors.0.2.zip',
+                'trunk' => 'https://api.aspirecloud.localhost/download/plugin/0-errors.zip',
             ]);
     });
 
