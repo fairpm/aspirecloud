@@ -1,27 +1,15 @@
 [//]: # (@formatter:off)
 # AspireCloud
 
-This project is designed to function as a CDN/API endpoint system for distributing WordPress assets (themes, plugins, core) to users of the [AspirePress Updater](https://github.com/aspirepress/updater-plugin).
+This project is designed to function as an API endpoint for distributing [FAIR](https://fair.pm) packages.  Currently it can serve WordPress plugins through [FAIR Connect](https://github.com/fairpm/fair-plugin) as well as extensions for TYPO3 v14.0 and up.
 
-# 🪧 CloudFest Hackathon 2025: see [/docs/readme.hackathon.md](./docs/readme.hackathon.md)
+## Quick Start
 
-## Setup
+If you're new to FAIR, we recommend using the [start-here repo](https://github.com/fairpm/start-here#quick-start), which will download and bootstrap an AspireCloud instance with just one command (`just start`).  After that, your instance will be accessible at https://api.aspirecloud.localhost.
 
-### Quick Start
+### Quick Start for Standalone instance 
 
-```
-make init
-```
-
-Next configure WordPress to use your local version of AspireCloud, and you're good to go! 
-
-## Using https://api.aspiredev.org instead of localhost
-
-The local dev instance can be reached this way by enabling a [Traefik](https://hub.docker.com/_/traefik) proxy server:
-
-    make traefik-up
-
-You will then be able to reach the instance at https://api.aspiredev.org
+If you're not running the whole start-here stack, you can still bring up an AC instance with `just start` in a fresh checkout of the AspireCloud repo (this one).  Since none of the services expose local ports by default, you will want to edit `docker-compose.override.yml` to add listening ports (see docker-compose.override.yml.dist for examples).    
 
 ## Notes
 
