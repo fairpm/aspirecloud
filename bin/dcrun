@@ -1,8 +1,4 @@
 #!/bin/bash
-
 cd $(dirname $0)/..
-base=$(pwd)
 
-svc=${CLI_SERVICE:-cli}
-
-exec docker compose run --rm $svc "$@"
+exec docker compose run --rm "${DCRUN_SERVICE:-cli}" "$@"

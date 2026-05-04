@@ -1,12 +1,12 @@
 #!/bin/bash
-here=$(dirname "$0") && source "$here"/prelude.bash
+here=$(dirname "$0") && source "$here"/_prelude.bash
 
 . .env
 [[ -r .env.testing ]] && . .env.testing
 
 export PGPASSWORD=$DB_ROOT_PASSWORD
-psql -U $DB_ROOT_USERNAME -h $DB_HOST -c 'drop database if exists aspirecloud'
-psql -U $DB_ROOT_USERNAME -h $DB_HOST -c "create database aspirecloud owner $DB_USERNAME"
-psql -U $DB_ROOT_USERNAME -h $DB_HOST -c "create extension if not exists pg_trgm"
+psql -U "$DB_ROOT_USERNAME" -h "$DB_HOST" -c 'drop database if exists aspirecloud'
+psql -U "$DB_ROOT_USERNAME" -h "$DB_HOST" -c "create database aspirecloud owner $DB_USERNAME"
+psql -U "$DB_ROOT_USERNAME" -h "$DB_HOST" -c "create extension if not exists pg_trgm"
 php artisan migrate --force --no-interaction
 php artisan db:seed

@@ -1,6 +1,5 @@
 #!/bin/bash
-
-here=$(dirname "$0") && source "$here"/prelude.bash
+here=$(dirname "$0") && source "$here"/_prelude.bash
 
 . .env
 [[ -r .env.testing ]] && . .env.testing
