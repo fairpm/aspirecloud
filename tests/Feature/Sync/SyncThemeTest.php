@@ -114,27 +114,27 @@ describe('Sync Themes', function () {
             ->and($theme->external_repository_url)->toBeNull();
 
         // test url rewrites
-        expect($theme->download_link)->toBe('https://api.aspiredev.org/download/theme/100-bytes.1.1.3.zip');
+        expect($theme->download_link)->toBe('https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.3.zip');
 
         expect($theme->versions)->toBe([
-            '1.0' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.zip',
-            '1.0.1' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.1.zip',
-            '1.0.2' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.2.zip',
-            '1.0.3' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.3.zip',
-            '1.0.4' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.4.zip',
-            '1.0.5' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.5.zip',
-            '1.0.6' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.6.zip',
-            '1.0.7' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.7.zip',
-            '1.0.8' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.8.zip',
-            '1.0.9' => 'https://api.aspiredev.org/download/theme/100-bytes.1.0.9.zip',
-            '1.1.0' => 'https://api.aspiredev.org/download/theme/100-bytes.1.1.0.zip',
-            '1.1.1' => 'https://api.aspiredev.org/download/theme/100-bytes.1.1.1.zip',
-            '1.1.2' => 'https://api.aspiredev.org/download/theme/100-bytes.1.1.2.zip',
-            '1.1.3' => 'https://api.aspiredev.org/download/theme/100-bytes.1.1.3.zip',
+            '1.0' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.zip',
+            '1.0.1' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.1.zip',
+            '1.0.2' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.2.zip',
+            '1.0.3' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.3.zip',
+            '1.0.4' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.4.zip',
+            '1.0.5' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.5.zip',
+            '1.0.6' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.6.zip',
+            '1.0.7' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.7.zip',
+            '1.0.8' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.8.zip',
+            '1.0.9' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.0.9.zip',
+            '1.1.0' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.0.zip',
+            '1.1.1' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.1.zip',
+            '1.1.2' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.2.zip',
+            '1.1.3' => 'https://api.aspirecloud.localhost/download/theme/100-bytes.1.1.3.zip',
         ]);
 
         expect($theme->screenshot_url)->toBe(
-            'https://api.aspiredev.org/download/assets/theme/100-bytes/1.1.3/screenshot.png',
+            'https://api.aspirecloud.localhost/download/assets/theme/100-bytes/1.1.3/screenshot.png',
         );
     });
 

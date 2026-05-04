@@ -13,11 +13,11 @@ services:
             app-net: ~
             aspire-net:
                 aliases:
-                    - 'api.aspiredev.org'
+                    - 'api.aspirecloud.localhost'
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.ap-api.rule=Host(`api.aspiredev.org`)"
-            - "traefik.http.routers.ap-api-https.rule=Host(`api.aspiredev.org`)"
+            - "traefik.http.routers.ap-api.rule=Host(`api.aspirecloud.localhost`)"
+            - "traefik.http.routers.ap-api-https.rule=Host(`api.aspirecloud.localhost`)"
             - "traefik.http.routers.ap-api-https.tls=true"
 
     redis:
@@ -37,7 +37,7 @@ services:
             app-net: ~
             aspire-net:
                 aliases:
-                    - 'db.aspiredev.org'
+                    - 'db.aspirecloud.localhost'
 
     queue-worker:
         build:
@@ -86,7 +86,7 @@ services:
             app-net: ~
             aspire-net:
                 aliases:
-                    - 'mail.aspiredev.org'
+                    - 'mail.aspirecloud.localhost'
         environment:
             MP_MAX_MESSAGES: 500
             MP_SMTP_AUTH_ACCEPT_ANY: 1

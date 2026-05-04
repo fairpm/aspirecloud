@@ -1,8 +1,4 @@
 #!/bin/bash
-
 cd $(dirname $0)/..
-base=$(pwd)
 
-svc=${APP_SERVICE:-webapp}
-
-exec docker compose exec $svc "$@"
+exec docker compose exec "${DCEXEC_SERVICE:-webapp}" "$@"
