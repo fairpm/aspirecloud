@@ -14,8 +14,15 @@ beforeEach(function () {
 test('queryPlugins with search returns matching plugins', function () {
     // Create plugins with specific names
     Plugin::factory()->create(['name' => 'Test Plugin', 'slug' => 'test-plugin']);
-    Plugin::factory()->create(['name' => 'Another Plugin', 'slug' => 'another-plugin']);
-    Plugin::factory(3)->create();
+    // Random factory text can match "Test" through the trigram/full-text search.
+    foreach (['alpha', 'bravo', 'charlie', 'delta'] as $slug) {
+        Plugin::factory()->create([
+            'name' => $slug,
+            'slug' => $slug,
+            'short_description' => 'Unrelated content',
+            'description' => 'Unrelated content',
+        ]);
+    }
 
     // Create the service
     $service = new QueryPluginsService();

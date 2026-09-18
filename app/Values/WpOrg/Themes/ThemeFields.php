@@ -3,10 +3,56 @@ declare(strict_types=1);
 
 namespace App\Values\WpOrg\Themes;
 
+use App\Values\WpOrg\ResponseFields;
 use Illuminate\Http\Request;
 
 trait ThemeFields
 {
+    /**
+     * @param array<string, bool> $actionDefaults
+     * @return array<string, bool>
+     */
+    private function selectFields(array $actionDefaults, bool $information = false): array
+    {
+        if ($this->apiVersion === '1.0') {
+            return $this->fields ?? [];
+        }
+
+        $defaults = array_merge(
+            self::additionalFields,
+            [
+                'last_updated' => false,
+                'num_ratings' => true,
+            ],
+            $actionDefaults,
+        );
+        if (version_compare($this->apiVersion, '1.2', '>=')) {
+            foreach ([
+                'extended_author',
+                'requires',
+                'requires_php',
+                'is_commercial',
+                'is_community',
+                'external_repository_url',
+                'external_support_url',
+            ] as $field) {
+                $defaults[$field] = true;
+            }
+            if ($information) {
+                $defaults['reviews_url'] = true;
+                $defaults['creation_time'] = true;
+            }
+        }
+
+        $fields = ResponseFields::resolve($this->fields, $defaults);
+        // last_updated controls both representations unless the time field is explicitly overridden.
+        $time = ResponseFields::resolve($this->fields, ['last_updated_time' => $fields['last_updated']]);
+        $fields['last_updated_time'] = $time['last_updated_time'];
+        $fields['num_ratings'] = $fields['rating'] && $fields['num_ratings'];
+        $fields['description'] = $fields['description'] && !$fields['sections'];
+        return $fields;
+    }
+
     // does not include fields that are always enabled, e.g. slug, name
     public const additionalFields = [
         'description' => false,
@@ -41,29 +87,13 @@ trait ThemeFields
     ];
 
     /**
-     * Get the fields to be returned in the response.
+     * Keep the historical field selection for serialized PHP responses (API 1.0).
      *
      * @param array<string,bool> $defaultFields
      * @return array<string,bool>
      */
-    public static function getFields(Request $request, array $defaultFields = []): array
+    private static function getLegacyFields(Request $request, array $defaultFields = []): array
     {
-        if (version_compare($request->route('version') ?? '1.2', '1.2', '>=')) {
-            // GH-278: we send back all fields by default now.
-            // This makes much of the code below redundant, but we still want to support explicitly disabling fields
-            $defaultFields = array_fill_keys(array_keys(self::additionalFields), true);
-
-            // Default fields enabled by api.wordpress.org below
-            // $defaultFields['extended_author'] = true;
-            // $defaultFields['external_repository_url'] = true;
-            // $defaultFields['external_support_url'] = true;
-            // $defaultFields['is_commercial'] = true;
-            // $defaultFields['is_community'] = true;
-            // $defaultFields['num_ratings'] = true;
-            // $defaultFields['parent'] = true;
-            // $defaultFields['requires'] = true;
-            // $defaultFields['requires_php'] = true;
-        }
         $specifiedFields = $request->query('fields');
         if (!$specifiedFields) {
             return array_merge(self::additionalFields, $defaultFields);
@@ -79,17 +109,20 @@ trait ThemeFields
             $specifiedFields = array_combine($specifiedFields, array_fill(0, count($specifiedFields), true));
         } else {
             // [ 'field1' => 1, 'field2' => 'false'] => [ 'field1' => true, 'field2' => false ]
-            $specifiedFields = array_map(function ($value) {
-                if (is_string($value)) {
-                    $value = strtolower($value); // Make the string case-insensitive
-                    if ($value === '1' || $value === 'true') {
-                        return true;
-                    } elseif ($value === '0' || $value === 'false') {
-                        return false;
+            $specifiedFields = array_map(
+                function ($value) {
+                    if (is_string($value)) {
+                        $value = strtolower($value); // Make the string case-insensitive
+                        if ($value === '1' || $value === 'true') {
+                            return true;
+                        } elseif ($value === '0' || $value === 'false') {
+                            return false;
+                        }
                     }
-                }
-                return $value;
-            }, $specifiedFields);
+                    return $value;
+                },
+                $specifiedFields,
+            );
         }
 
         return array_merge(self::additionalFields, $specifiedFields, $defaultFields);

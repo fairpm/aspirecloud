@@ -46,13 +46,14 @@ class QueryPluginsService
         $total = $query->count();
         $totalPages = (int)ceil($total / $perPage);
 
+        $fields = Plugins\PluginFields::resolve($req->fields);
         $plugins = $query
-            ->with('contributors')
+            ->when($fields['contributors'], fn($q) => $q->with('contributors'))
             ->offset(($page - 1) * $perPage)
             ->limit($perPage)
             ->get()
             ->unique('slug')
-            ->map(fn($plugin) => Plugins\PluginResponse::from($plugin));
+            ->map(fn($plugin) => Plugins\PluginResponse::fromModel($plugin, $fields));
 
         return Plugins\QueryPluginsResponse::from([
             'plugins' => $plugins,

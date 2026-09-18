@@ -16,23 +16,31 @@ readonly class QueryThemesRequest extends DTO
 
     public const ACTION = 'query_themes';
 
+    public const DEFAULT_FIELDS = [
+        'description' => true,
+        'rating' => true,
+        'homepage' => true,
+        'template' => true,
+    ];
+
     /**
      * @param list<string>|null $tags
      * @param list<string>|null $ac_tags
-     * @param string|array<string,bool>|null $fields
+     * @param mixed $fields Raw WordPress field selector, normalized by ThemeFields.
      */
     public function __construct(
-        public ?string $search = null, // text to search
-        public ?array $tags = null,    // tag or set of tags
-        public ?string $theme = null,  // slug of a specific theme
-        public ?string $author = null, // wp.org username of author
-        public ?string $browse = null, // one of popular|featured|updated|new
+        public null|string $search = null, // text to search
+        public null|array $tags = null, // tag or set of tags
+        public null|string $theme = null, // slug of a specific theme
+        public null|string $author = null, // wp.org username of author
+        public null|string $browse = null, // one of popular|featured|updated|new
         public mixed $fields = null,
         public int $page = 1,
         public int $per_page = 24,
 
         // AspireCloud-specific extensions
-        public ?array $ac_tags = null, // tag or set of tags, AND'ed together
+        public null|array $ac_tags = null, // tag or set of tags, AND'ed together
+        public string $apiVersion = '1.2',
     ) {}
 
     /** @return array<string, mixed> */
@@ -43,14 +51,16 @@ readonly class QueryThemesRequest extends DTO
         $query['tags'] = Arr::wrap(Arr::pull($query, 'tag', []));
         $query['ac_tags'] = Arr::wrap(Arr::pull($query, 'ac_tag', []));
 
-        $defaultFields = [
-            'description' => true,
-            'rating' => true,
-            'homepage' => true,
-            'template' => true,
-        ];
-
-        $query['fields'] = self::getFields($request, $defaultFields);
+        $query['apiVersion'] = $request->route('version') ?? '1.2';
+        $query['fields'] = $query['apiVersion'] === '1.0'
+            ? self::getLegacyFields($request, self::DEFAULT_FIELDS)
+            : $request->query('fields');
         return $query;
+    }
+
+    /** @return array<string, bool> */
+    public function responseFields(): array
+    {
+        return $this->selectFields(self::DEFAULT_FIELDS);
     }
 }

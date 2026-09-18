@@ -39,7 +39,13 @@ class QueryThemesService
             ->with('author')
             ->get();
 
-        $collection = ThemeResponse::collect($themes)->map(fn($theme) => $theme->withFields($req->fields ?? []));
+        $fields = $req->responseFields();
+        $collection = $themes->map(
+            fn($theme) => ThemeResponse::fromModel(
+                $theme,
+                $req->apiVersion === '1.0' ? null : $fields,
+            )->withFields($fields),
+        );
 
         return QueryThemesResponse::from(
             themes: $collection,

@@ -14,10 +14,22 @@ readonly class ThemeInformationRequest extends DTO
 
     public const ACTION = 'theme_information';
 
-    /** @param array<string,bool>|null $fields */
+    public const DEFAULT_FIELDS = [
+        'sections' => true,
+        'rating' => true,
+        'downloaded' => true,
+        'download_link' => true,
+        'last_updated' => true,
+        'last_updated_time' => true,
+        'homepage' => true,
+        'tags' => true,
+        'template' => true,
+    ];
+
     public function __construct(
         public string $slug,
-        public ?array $fields = null,
+        public mixed $fields = null,
+        public string $apiVersion = '1.2',
     ) {}
 
     public static function fromRequest(Request $request): static
@@ -27,26 +39,17 @@ readonly class ThemeInformationRequest extends DTO
         // TODO: generalize from on request classes to convert MissingPropertiesException to ValidationException
         $req = $request->validate(['slug' => 'required']);
 
-        $defaultFields = [
-            'sections' => true,
-            'rating' => true,
-            'downloaded' => true,
-            'download_link' => true,
-            'last_updated' => true,
-            'last_updated_time' => true,
-            'homepage' => true,
-            'tags' => true,
-            'template' => true,
-        ];
-
-        if (version_compare($request->route('version') ?? '1.2', '1.2', '>=')) {
-            $defaultFields['reviews_url'] = true;
-            $defaultFields['creation_time'] = true;
-        }
-
-        $req['fields'] = static::getFields($request, $defaultFields);
-        $req['last_updated_time'] = $req['last_updated'] ?? true;
+        $req['apiVersion'] = $request->route('version') ?? '1.2';
+        $req['fields'] = $req['apiVersion'] === '1.0'
+            ? self::getLegacyFields($request, self::DEFAULT_FIELDS)
+            : $request->query('fields');
 
         return static::from($req);
+    }
+
+    /** @return array<string, bool> */
+    public function responseFields(): array
+    {
+        return $this->selectFields(self::DEFAULT_FIELDS, information: true);
     }
 }

@@ -68,44 +68,54 @@ readonly class ThemeResponse extends DTO
         public Optional|string $ac_created,
     ) {}
 
+    /** @param array<string, bool>|null $fields Null includes all fields. */
+    public static function fromModel(Theme $theme, null|array $fields = null): static
+    {
+        return static::from(static::fromTheme($theme, $fields));
+    }
+
     /**
+     * @param array<string, bool>|null $fields Null preserves the legacy unfiltered response.
      * @return array<string, mixed>
      */
     #[Transforms(Theme::class)]
-    public static function fromTheme(Theme $theme): array
+    public static function fromTheme(Theme $theme, null|array $fields = null): array
     {
+        $none = new Optional();
         return [
             'name' => $theme->name,
             'slug' => $theme->slug,
             'version' => $theme->version,
             'preview_url' => $theme->preview_url,
             'author' => $theme->author, // gets converted to $theme->author->user_nicename unless extended_author=true
-            'description' => $theme->description,
-            'screenshot_url' => $theme->screenshot_url,
-            'ratings' => $theme->ratings,
-            'rating' => $theme->rating,
-            'num_ratings' => $theme->num_ratings,
-            'reviews_url' => $theme->reviews_url,
-            'downloaded' => $theme->downloaded,
-            'active_installs' => $theme->active_installs,
-            'last_updated' => $theme->last_updated?->format('Y-m-d'),
-            'last_updated_time' => $theme->last_updated?->format('Y-m-d H:i:s'),
-            'creation_time' => $theme->creation_time?->format('Y-m-d H:i:s'),
-            'homepage' => "https://wordpress.org/themes/{$theme->slug}/",
-            'sections' => $theme->sections,
-            'download_link' => $theme->download_link,
-            'tags' => $theme->tagsArray(),
-            'versions' => $theme->versions,
-            'requires' => $theme->requires,
-            'requires_php' => $theme->requires_php,
-            'is_commercial' => $theme->is_commercial,
-            'external_support_url' => $theme->external_support_url,
-            'is_community' => $theme->is_community,
-            'external_repository_url' => $theme->external_repository_url,
-
+            'description' => $fields['description'] ?? true ? $theme->description : $none,
+            'screenshot_url' => $fields['screenshot_url'] ?? true ? $theme->screenshot_url : $none,
+            'ratings' => $fields['ratings'] ?? true ? $theme->ratings : $none,
+            'rating' => $fields['rating'] ?? true ? $theme->rating : $none,
+            'num_ratings' => $fields['num_ratings'] ?? true ? $theme->num_ratings : $none,
+            'reviews_url' => $fields['reviews_url'] ?? true ? $theme->reviews_url : $none,
+            'downloaded' => $fields['downloaded'] ?? true ? $theme->downloaded : $none,
+            'active_installs' => $fields['active_installs'] ?? true ? $theme->active_installs : $none,
+            'last_updated' => $fields['last_updated'] ?? true ? $theme->last_updated?->format('Y-m-d') : $none,
+            'last_updated_time' => $fields['last_updated_time'] ?? true
+                ? $theme->last_updated?->format('Y-m-d H:i:s')
+                : $none,
+            'creation_time' => $fields['creation_time'] ?? true ? $theme->creation_time?->format('Y-m-d H:i:s') : $none,
+            'homepage' => $fields['homepage'] ?? true ? "https://wordpress.org/themes/{$theme->slug}/" : $none,
+            'sections' => $fields['sections'] ?? true ? $theme->sections : $none,
+            'download_link' => $fields['download_link'] ?? true ? $theme->download_link : $none,
+            'tags' => $fields['tags'] ?? true ? $theme->tagsArray() : $none,
+            'versions' => $fields['versions'] ?? true ? $theme->versions : $none,
+            'requires' => $fields['requires'] ?? true ? $theme->requires : $none,
+            'requires_php' => $fields['requires_php'] ?? true ? $theme->requires_php : $none,
+            'is_commercial' => $fields['is_commercial'] ?? true ? $theme->is_commercial : $none,
+            'external_support_url' => $fields['external_support_url'] ?? true ? $theme->external_support_url : $none,
+            'is_community' => $fields['is_community'] ?? true ? $theme->is_community : $none,
+            'external_repository_url' => $fields['external_repository_url'] ?? true
+                ? $theme->external_repository_url
+                : $none,
             // hidden
-            'extended_author' => $theme->author,
-
+            'extended_author' => $fields['extended_author'] ?? true ? $theme->author : $none,
             // eventual support
             // 'parent' => $none,
             // 'screenshot_count' => $none,

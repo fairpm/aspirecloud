@@ -13,6 +13,10 @@ class ThemeInformationService
     public function info(ThemeInformationRequest $req): ThemeResponse
     {
         $theme = Theme::query()->where('slug', $req->slug)->first() or throw new NotFoundException("Theme not found");
-        return ThemeResponse::from($theme)->withFields($req->fields ?? []);
+        $fields = $req->responseFields();
+        return ThemeResponse::fromModel(
+            $theme,
+            $req->apiVersion === '1.0' ? null : $fields,
+        )->withFields($fields);
     }
 }

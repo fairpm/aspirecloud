@@ -17,7 +17,7 @@ readonly class QueryPluginsRequest extends DTO
      * @param list<string>|null $tagAnd
      * @param list<string>|null $tagOr
      * @param list<string>|null $tagNot
-     * @param string|list<string>|null $fields
+     * @param mixed $fields Raw WordPress field selector, normalized by PluginFields.
      */
     public function __construct(
         public ?string $search = null,
